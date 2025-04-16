@@ -1,4 +1,4 @@
-# CMS_Notes
+# CMS Study Notes
 Notes of ***Computational Materials Science: From Algorithm principle to Code Implementation***
 
 ## Molecular Dynamics
