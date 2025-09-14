@@ -1,7 +1,14 @@
 # CMS Study Notes
-Notes of ***Computational Materials Science: From Algorithm principle to Code Implementation***
 
-## Molecular Dynamics
+## 1. Density Functional Theory
+[Interactive courses](https://www.dsedu.org/courses) from [Delta Science Institute](https://www.dsedu.org/).
+
+> To calculate the lowest eigenvalue and eigenfunction of an isolated C5+ ion in the local density approximation (LDA) with using Ceperley-Alder exchange-correlation functional in the Perdew-Zunger parametrization. Compare numerical DFT solution with analytical solution from Schrödinger equation for isolated C5+ ion.
+
+### Direct integration of the radial Kohn-Sham equation
+
+## 2. Molecular Dynamics
+Notes of ***Computational Materials Science: From Algorithm principle to Code Implementation***
 
 ### Algorithms and Principles
 
