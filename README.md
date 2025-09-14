@@ -8,7 +8,7 @@
 ### Direct integration of the radial Kohn-Sham equation
 
 ## 2. Molecular Dynamics
-Notes of ***Computational Materials Science: From Algorithm principle to Code Implementation***
+Notes of [**Computational Materials Science: From Algorithm principle to Code Implementation**](https://github.com/stanfordbshan/CompMatBook)
 
 ### Algorithms and Principles
 
