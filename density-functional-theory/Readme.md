@@ -181,7 +181,7 @@ The code generates several output files:
 
 The implementation is validated by comparing the numerical solution with the analytical solution for hydrogen-like atoms. For a hydrogen-like atom with nuclear charge Z, the analytical 1s wavefunction is:
 
-$$P_\text{analytical}(r) = \frac{Z^{\frac32}}{\sqrt{\pi}}e^{-Zr}$$
+$$P_\text{analytical}(r) = r\Psi_\text{analytical}(r) = \frac{Z^{\frac32}}{\sqrt{\pi}}re^{-Zr}$$
 
 with energy $E = -\frac{Z^2}{2}$ (in atomic units).
 

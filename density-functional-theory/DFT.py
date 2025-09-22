@@ -55,7 +55,7 @@ class RadialDFT:
 
     def initialize(self):
         """Analytical solution for H-like 1s orbital as initial guess"""
-        self.P_analytical = (self.Z**1.5) * np.exp(-self.Z*self.r) / np.sqrt(np.pi)
+        self.P_analytical = self.r * (self.Z**1.5) * np.exp(-self.Z*self.r) / np.sqrt(np.pi)
         self.P = self.P_analytical.copy()
         logger.debug(f"Initial wave function (first 5 values): {self.P[:5]}")
         logger.info(f"Initialized wave function with analytical 1s orbital for Z={self.Z}")
