@@ -237,11 +237,11 @@ $$\left[-\frac{1}{2}\frac{d^2}{dr^2} + V_\text{nuc}(r)\right]\Psi_{1s}(r) = E\Ps
 
 The Numerov method can be used to solve differential equations of the kind
 
-$${{{d^2}} \over {d{x^2}}}y\left( x \right) + f\left( x \right)y\left( x \right) = F\left( x \right)$$
+$${{{\partial^2}} \over {\partial{x^2}}}y\left( x \right) + f\left( x \right)y\left( x \right) = F\left( x \right)$$
 
 For the Kohn-Sham equation, we rewrite it in the form:
 
-$$\frac{d^2}{d x^2} y(x)+\underbrace{2\left(\varepsilon-V^{K S}(x)\right)}_{f(x)} y(x)=\underbrace{0}_{F(x)} .$$
+$$\frac{\partial^2}{\partial r^2} P(r)+\underbrace{2\left(\varepsilon-V^{KS}(r)\right)}_{f(r)} P(r)=\underbrace{0}_{F(r)} .$$
 
 By using Taylor expansion for $y(x_{i+1})$ and $y(x_{i-1})$ around $x_i$ and combining them, we obtain the Numerov formula:
 
