@@ -28,6 +28,7 @@ Molecular Dynamics (MD) is a computational technique that uses numerical simulat
    - Conjugate Gradient Method
    - Backtracking Line Search
 
+
 ## Notebooks
 
 The repository includes several Jupyter notebooks that demonstrate the algorithms and provide educational content:
@@ -36,8 +37,16 @@ The repository includes several Jupyter notebooks that demonstrate the algorithm
 2. `computational_materials_science-molecular_dynamics-LAMMPS_examples.ipynb`: Provides examples using the LAMMPS software
 3. `integration_algorithms_for_molecular_dynamics_python.ipynb`: Details the integration algorithms
 4. `Lennard-Jones_potential_python.ipynb`: Implements the Lennard-Jones potential
-5. `optimization_algorithms_for_molecular_dynamics_python.ipynb`: Covers optimization algorithms
+5. `optimization_algorithms_for_molecular_dynamics_python.ipynb`: Details the optimization methods
 6. `syntax_and_algorithms_python.ipynb`: Reviews Python programming concepts for MD
+
+## References
+
+The implementation is based on principles described in:
+
+1. Frenkel, D. and Smit, B. "Understanding Molecular Simulation: From Algorithms to Applications"
+2. Allen, M. P. and Tildesley, D. J. "Computer Simulation of Liquids"
+3. Tuckerman, M. E. "Statistical Mechanics: Theory and Molecular Simulation"
 
 ## License
 
@@ -45,4 +54,4 @@ This project is licensed under the CC BY-NC-SA 4.0 International License - see i
 
 ## Author
 
-Wang Jianghai - [Email Contact](mailto:jianghai001@e.ntu.edu.sg)
+Wang Jianghai - [📧Email Contact](mailto:jianghai001@e.ntu.edu.sg)
