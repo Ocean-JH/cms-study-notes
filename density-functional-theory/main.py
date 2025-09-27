@@ -107,12 +107,12 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
             f.write(f"# Iteration {i}:\n")
             f.write(f"#\tr(a.u.)\tP(r)\tP0(r)\terror (P(i)-P0(i))\n")
             for j in range(N):
-                f.write(f"{r[j]:20.15f}\t{P_history[i][j]:20.15f}\t{P_analytical[j]}\t{(P_analytical[j] - P_history[i][j]):20.12e}\n")
+                f.write(f"{r[j]:<20.15f}\t{P_history[i][j]:<20.15f}\t{P_analytical[j]:<20.15f}\t{(P_analytical[j] - P_history[i][j]):<20.12e}\n")
             f.write("\n")
         f.write(f"# Iteration {len(P_history)} - Final Results:\n")
         f.write(f"#\tr(a.u.)\tP(r)\tP0(r)\terror (P(i)-P0(i))\n")
         for j in range(N):
-            f.write(f"{r[j]:20.15f}\t{P_history[-1][j]:20.15f}\t{P_analytical[j]}\t{(P_analytical[j] - P_history[-1][j]):20.12e}\n")
+            f.write(f"{r[j]:<20.15f}\t{P_history[-1][j]:<20.15f}\t{P_analytical[j]:<20.15f}\t{(P_analytical[j] - P_history[-1][j]):<20.12e}\n")
 
     with open("potential.dat", "w") as f:
         f.write(f"#  Potential Data\n")
@@ -121,12 +121,12 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
             f.write(f"# Iteration {i}:\n")
             f.write(f"#\tr(a.u.)\tV_nuc(r)\tV_ee(r)\tV_xc(r)\tV_ks(r)\n")
             for j in range(N):
-                f.write(f"{r[j]:20.15f}{V_nuc[i][j]:20.15f}{V_ee[i][j]:20.15f}{V_xc[i][j]:20.15f}{V_KS[i][j]:20.15f}\n")
+                f.write(f"{r[j]:<20.15f}{V_nuc[i][j]:<20.15f}{V_ee[i][j]:<20.15f}{V_xc[i][j]:<20.15f}{V_KS[i][j]:<20.15f}\n")
             f.write("\n")
         f.write(f"# Iteration {len(V_KS)} - Final Results:\n")
         f.write(f"#\tr(a.u.)\tV_nuc(r)\tV_ee(r)\tV_xc(r)\tV_ks(r)\n")
         for j in range(N):
-            f.write(f"{r[j]:20.15f}\t{V_nuc[i][j]:20.15f}\t{V_ee[-1][j]:20.15f}\t{V_xc[-1][j]:20.15f}\t{V_KS[-1][j]:20.15f}\n")
+            f.write(f"{r[j]:<20.15f}\t{V_nuc[i][j]:<20.15f}\t{V_ee[-1][j]:<20.15f}\t{V_xc[-1][j]:<20.15f}\t{V_KS[-1][j]:<20.15f}\n")
 
     logger.info("Wavefunction and potential data written to files.")
 
@@ -134,7 +134,7 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
     with open("energy.dat", "w") as f:
         f.write(f"#\tIteration\tTotE\tE_KS\tE_ee\tE_xc\tE_xc1\tdE\n")
         for i in range(len(E_history)):
-            f.write(f"{i:20.15f}\t{E_history[i]:20.15f}\t{E_ks_history[i]:20.15f}\t{E_ee_history[i]:20.15f}\t{E_xc_history[i]:20.15f}\t{E_xc1_history[i]:20.15f}\t{dE_history[i] if dE_history[i] is not None else 0.0:20.12e}\n")
+            f.write(f"\t{i}\t{E_history[i]:<20.15f}\t{E_ks_history[i]:<20.15f}\t{E_ee_history[i]:<20.15f}\t{E_xc_history[i]:<20.15f}\t{E_xc1_history[i]:<20.15f}\t{dE_history[i] if dE_history[i] is not None else 0.0:<20.12e}\n")
 
     logger.info("Energy data written to file.")
     logger.info("DFT calculation completed successfully.")
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     Z = 6  # Nuclear charge for Hydrogen-like atom
     r0 = 1e-5  # Minimum radius
     rf = 20.0  # Maximum radius
-    N = 10001  # Number of mesh points
+    N = 10000  # Number of mesh points
 
     alpha = 0.1  # Mixing parameter for SCF
     prec = 1e-5  # Convergence tolerance
