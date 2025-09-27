@@ -34,6 +34,8 @@ def plot(dft: RadialDFT, wavefunc=True, potential=True):
         plt.plot(r, dft.P_analytical, label='Analytical P(r)', color='orange', linestyle='--', lw=2)
         plt.xlabel('r (a.u.)')
         plt.ylabel('Radial Wavefunction P(r)')
+        plt.xlim([0, 0.25])
+
         plt.title('Radial Wavefunction Comparison')
         plt.legend()
         plt.grid()
@@ -103,39 +105,40 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
         f.write(f"Total Iterations: {len(P_history)}\n\n")
         for i in range(1, len(P_history)):
             f.write(f"# Iteration {i}:\n")
-            f.write(f"#  r(a.u.)    P(r)    P0(r)    error (P(i)-P0(i))\n")
+            f.write(f"#\tr(a.u.)\tP(r)\tP0(r)\terror (P(i)-P0(i))\n")
             for j in range(N):
-                f.write(f"{r[j]:20.15f}{P_history[i][j]:20.15f}{P_analytical[j]}{(P_analytical[j] - P_history[i][j]):20.12e}\n")
+                f.write(f"{r[j]:20.15f}\t{P_history[i][j]:20.15f}\t{P_analytical[j]}\t{(P_analytical[j] - P_history[i][j]):20.12e}\n")
             f.write("\n")
         f.write(f"# Iteration {len(P_history)} - Final Results:\n")
-        f.write(f"#  r(a.u.)    P(r)    P0(r)    error (P(i)-P0(i))\n")
+        f.write(f"#\tr(a.u.)\tP(r)\tP0(r)\terror (P(i)-P0(i))\n")
         for j in range(N):
-            f.write(f"{r[j]:20.15f}{P_history[-1][j]:20.15f}{P_analytical[j]}{(P_analytical[j] - P_history[-1][j]):20.12e}\n")
+            f.write(f"{r[j]:20.15f}\t{P_history[-1][j]:20.15f}\t{P_analytical[j]}\t{(P_analytical[j] - P_history[-1][j]):20.12e}\n")
 
     with open("potential.dat", "w") as f:
         f.write(f"#  Potential Data\n")
         f.write(f"Total Iterations: {len(V_KS)}\n\n")
         for i in range(1, len(V_KS)):
             f.write(f"# Iteration {i}:\n")
-            f.write(f"#  r(a.u.)    V_nuc(r)    V_ee(r)    V_xc(r)    V_ks(r)\n")
+            f.write(f"#\tr(a.u.)\tV_nuc(r)\tV_ee(r)\tV_xc(r)\tV_ks(r)\n")
             for j in range(N):
                 f.write(f"{r[j]:20.15f}{V_nuc[i][j]:20.15f}{V_ee[i][j]:20.15f}{V_xc[i][j]:20.15f}{V_KS[i][j]:20.15f}\n")
             f.write("\n")
         f.write(f"# Iteration {len(V_KS)} - Final Results:\n")
-        f.write(f"#  r(a.u.)    V_nuc(r)    V_ee(r)    V_xc(r)    V_ks(r)\n")
+        f.write(f"#\tr(a.u.)\tV_nuc(r)\tV_ee(r)\tV_xc(r)\tV_ks(r)\n")
         for j in range(N):
-            f.write(f"{r[j]:20.15f}{V_nuc[i][j]:20.15f}{V_ee[-1][j]:20.15f}{V_xc[-1][j]:20.15f}{V_KS[-1][j]:20.15f}\n")
+            f.write(f"{r[j]:20.15f}\t{V_nuc[i][j]:20.15f}\t{V_ee[-1][j]:20.15f}\t{V_xc[-1][j]:20.15f}\t{V_KS[-1][j]:20.15f}\n")
 
     logger.info("Wavefunction and potential data written to files.")
 
     logger.info("Writing Energy data...")
     with open("energy.dat", "w") as f:
-        f.write(f"#  Iteration     TotE   E_KS   E_ee   E_xc    E_xc1   dE\n")
+        f.write(f"#\tIteration\tTotE\tE_KS\tE_ee\tE_xc\tE_xc1\tdE\n")
         for i in range(len(E_history)):
-            f.write(f"{i:20.15f}{E_history[i]:20.15f}{E_ks_history[i]:20.15f}{E_ee_history[i]:20.15f}{E_xc_history[i]:20.15f}{E_xc1_history[i]:20.15f}{dE_history[i] if dE_history[i] is not None else 0.0:20.12e}\n")
+            f.write(f"{i:20.15f}\t{E_history[i]:20.15f}\t{E_ks_history[i]:20.15f}\t{E_ee_history[i]:20.15f}\t{E_xc_history[i]:20.15f}\t{E_xc1_history[i]:20.15f}\t{dE_history[i] if dE_history[i] is not None else 0.0:20.12e}\n")
 
     logger.info("Energy data written to file.")
     logger.info("DFT calculation completed successfully.")
+
 
 if __name__ == "__main__":
     # Parameters
