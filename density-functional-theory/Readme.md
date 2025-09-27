@@ -1,4 +1,4 @@
-# Radial Density Functional Theory Solver for Hydrogen-like Atoms
+# Radial Kohn-Sham Equation Solver for Hydrogen-like Atoms
 
 ## Introduction
 
