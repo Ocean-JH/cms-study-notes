@@ -42,7 +42,7 @@ def plot(dft: RadialDFT, wavefunc=True, potential=True):
         plt.xlim(0, 0.25)
 
         plt.tight_layout()
-        plt.savefig("wavefunction_comparison.png", dpi=300)
+        plt.savefig("wavefunction.png", dpi=300)
         # plt.show()
 
     if potential:
@@ -57,9 +57,10 @@ def plot(dft: RadialDFT, wavefunc=True, potential=True):
         plt.legend()
         plt.grid()
         plt.xlim(0, 0.25)
+        plt.ylim(-500, 500)
 
         plt.tight_layout()
-        plt.savefig("potential_comparison.png", dpi=300)
+        plt.savefig("potential.png", dpi=300)
         # plt.show()
 
 
@@ -103,11 +104,11 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
     with open("wavefunction.dat", "w") as f:
         f.write(f"#  Wavefunction Data\n")
         f.write(f"Total Iterations: {len(P_history)}\n\n")
-        for i in range(1, len(P_history)):
+        for i in range(1, len(P_history)+1):
             f.write(f"# Iteration {i}:\n")
             f.write(f"#\tr(a.u.)\tP(r)\tP0(r)\terror (P(i)-P0(i))\n")
             for j in range(N):
-                f.write(f"{r[j]:<20.15f}\t{P_history[i][j]:<20.15f}\t{P_analytical[j]:<20.15f}\t{(P_analytical[j] - P_history[i][j]):<20.12e}\n")
+                f.write(f"{r[j]:<20.15f}\t{P_history[i-1][j]:<20.15f}\t{P_analytical[j]:<20.15f}\t{(P_analytical[j] - P_history[i-1][j]):<20.12e}\n")
             f.write("\n")
         f.write(f"# Iteration {len(P_history)} - Final Results:\n")
         f.write(f"#\tr(a.u.)\tP(r)\tP0(r)\terror (P(i)-P0(i))\n")
@@ -117,16 +118,16 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
     with open("potential.dat", "w") as f:
         f.write(f"#  Potential Data\n")
         f.write(f"Total Iterations: {len(V_KS)}\n\n")
-        for i in range(1, len(V_KS)):
+        for i in range(1, len(V_KS)+1):
             f.write(f"# Iteration {i}:\n")
             f.write(f"#\tr(a.u.)\tV_nuc(r)\tV_ee(r)\tV_xc(r)\tV_ks(r)\n")
             for j in range(N):
-                f.write(f"{r[j]:<20.15f}{V_nuc[i][j]:<20.15f}{V_ee[i][j]:<20.15f}{V_xc[i][j]:<20.15f}{V_KS[i][j]:<20.15f}\n")
+                f.write(f"{r[j]:<20.15f}{V_nuc[i-1][j]:<20.15f}{V_ee[i-1][j]:<20.15f}{V_xc[i-1][j]:<20.15f}{V_KS[i-1][j]:<20.15f}\n")
             f.write("\n")
         f.write(f"# Iteration {len(V_KS)} - Final Results:\n")
         f.write(f"#\tr(a.u.)\tV_nuc(r)\tV_ee(r)\tV_xc(r)\tV_ks(r)\n")
         for j in range(N):
-            f.write(f"{r[j]:<20.15f}\t{V_nuc[i][j]:<20.15f}\t{V_ee[-1][j]:<20.15f}\t{V_xc[-1][j]:<20.15f}\t{V_KS[-1][j]:<20.15f}\n")
+            f.write(f"{r[j]:<20.15f}\t{V_nuc[i-1][j]:<20.15f}\t{V_ee[-1][j]:<20.15f}\t{V_xc[-1][j]:<20.15f}\t{V_KS[-1][j]:<20.15f}\n")
 
     logger.info("Wavefunction and potential data written to files.")
 

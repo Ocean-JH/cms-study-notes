@@ -55,9 +55,8 @@ class RadialDFT:
 
     def initialize(self):
         """Analytical solution for H-like 1s orbital as initial guess"""
-        self.P_analytical = self.r * (self.Z**1.5) * np.exp(-self.Z*self.r) / np.sqrt(np.pi)
+        self.P_analytical = self.r * (self.Z**1.5) * np.exp(- self.Z * self.r) / np.sqrt(np.pi)
         self.P = self.P_analytical.copy()
-        logger.debug(f"Initial wave function (first 5 values): {self.P[:5]}")
         logger.info(f"Initialized wave function with analytical 1s orbital for Z={self.Z}")
 
     def normalize(self):
@@ -65,12 +64,10 @@ class RadialDFT:
         if norm == 0.0:
             raise ValueError("Wave function norm is zero, cannot normalize.")
         self.P /= norm
-        logger.debug(f"Normalized wave function: (first 5 values): {self.P[:5]}")
 
     def get_v_nuc(self):
         """Nuclear potential V_nuc(r) = -Z/r"""
         self.v_nuc = -self.Z / self.r
-        logger.debug(f"Nuclear potential V_nuc: {self.v_nuc}")
         return self.v_nuc
 
     def get_v_ee(self):
@@ -103,7 +100,6 @@ class RadialDFT:
 
         self.v_ee = Y / self.r
 
-        logger.debug("Electron-electron potential V_ee (first 5 values): {self.v_ee[:5]}")
         return self.v_ee
 
     def get_v_xc(self):
@@ -111,8 +107,8 @@ class RadialDFT:
         A, B, C, D = 0.0311, -0.0480, 0.0020, -0.0116
         b1, b2, g = 1.0529, 0.3334, -0.1423
 
-        for i, pi in enumerate(self.P):
-            ro = (pi / self.r[i])**2                                # charge density
+        for i in range(self.N):
+            ro = (self.P[i] / self.r[i])**2                         # charge density
             rs = (3.0 / (4.0 * np.pi * ro))**(1.0/3.0)
             Vx = -(3.0 * ro / np.pi)**(1.0/3.0)                     # exchange potential
 
@@ -128,7 +124,6 @@ class RadialDFT:
 
             self.v_xc[i] = Vx + Vc
 
-        logger.debug(f"Exchange-correlation potential V_xc (first 5 values): {self.v_xc[:5]}")
         return self.v_xc
 
     def get_v_ks(self):
@@ -138,7 +133,6 @@ class RadialDFT:
         v_xc = self.get_v_xc()
         self.v_ks = v_nuc + v_ee + v_xc
 
-        logger.debug(f"Kohn-Sham potential V_ks (first 5 values): {self.v_ks[:5]}")
         return self.v_ks, self.v_ee, self.v_xc
 
     def solve_ks(self, V, En):
@@ -161,14 +155,14 @@ class RadialDFT:
             fi_1 = 2.0 * (-V[i-1] + En)
 
             # see Eq. (7) from Numerov method https://www.dsedu.org/courses/dft/numerov
-            Bi =  1.0 + h2/12.0 * fi1
-            Ai =  1.0 + h2/12.0 * fi_1
-            Ci = -2.0 + 5.0*h2/6.0 * fi
+            Bi =  1.0 + h2 / 12.0 * fi1
+            Ai =  1.0 + h2 / 12.0 * fi_1
+            Ci = -2.0 + 5.0 * h2 / 6.0 * fi
 
             # see Eq. (4) from Thomas method https://www.dsedu.org/courses/dft/thomas
             AC = Ai * alpha[i] + Ci
-            alpha[i+1] = -Bi / AC
-            beta[i+1] = (Ai * beta[i]) / AC
+            alpha[i+1] = - Bi / AC
+            beta[i+1] = - Ai * beta[i] / AC
 
         # ---- backward sweep ----
         Y[-1] = self.P[-1]                                  # the boundary condition P(r_f), see formula (2) in https://www.dsedu.org/courses/dft/ks_eigenvector
@@ -179,24 +173,23 @@ class RadialDFT:
         for i in range(1, self.N-1):                        # P(1) and P(N) are fixed
             self.P[i] = Y[i]
 
+        norm_before = np.sqrt(np.trapezoid(self.P ** 2, self.r))
         self.normalize()
+        norm_after = np.sqrt(np.trapezoid(self.P ** 2, self.r))
 
-        logger.debug(f"Solved Kohn-Sham equation, updated wave function P (first 5 values): {self.P[:5]}")
-        return self.P
+        return self.P, norm_before, norm_after
 
-    def ks_energy(self):
+    def E_ks(self, V):
         """Calculate eigenvalue (energy e_10) by integration KS equation"""
         h2 = self.h**2
         E = 0.0
-        for i in range(self.N):
+        for i in range(self.N-1):
             if i == 0:
-                d2P = (self.P[1] - 2.0*self.P[0]) / h2
-            elif i == self.N-1:
-                d2P = (self.P[self.N-2] - 2.0*self.P[self.N-1]) / h2
+                d2P = (self.P[1] - 2.0 * self.P[0]) / h2
             else:
-                d2P = (self.P[i+1] - 2.0*self.P[i] + self.P[i-1]) / h2          # Finite difference for second derivative
+                d2P = (self.P[i+1] - 2.0 * self.P[i] + self.P[i-1]) / h2          # Finite difference for second derivative
 
-            E += self.P[i] * (-0.5 * d2P) * self.h
+            E += self.P[i] * (-0.5 * d2P + V[i] * self.P[i]) * self.h
 
         logger.debug(f"Kohn-Sham eigenvalue (energy): {E}")
         return 4.0 * np.pi * E
@@ -219,11 +212,10 @@ class RadialDFT:
 
             E_xc[i] = Ex + Ec
 
-        logger.debug(f"Exchange-correlation energy density E_xc (first 5 values): {E_xc[:5]}")
         return E_xc
 
 
-    def total_energy(self, V_ee, V_xc):
+    def E_tot(self, V_ee, V_xc):
         Exc = self.e_xc()                   # exchange-correlation energy density
         E_ee, E_xc, E_xc1 = 0.0, 0.0, 0.0
 
@@ -256,35 +248,32 @@ class RadialDFT:
         self.history["dE"].append(dE)
 
     def scf_loop(self, prec=1e-5, alpha=0.1, Nmax=100):
-        self.normalize()
-
         V_old, Vee_old, Vxc_old = self.get_v_ks()
         V_mixed = V_old.copy()
 
-        E_ks = self.ks_energy()
-        E_ee, E_xc, E_xc1 = self.total_energy(Vee_old, Vxc_old)
+        E_ks = - 0.5 * self.Z**2
+        E_ee, E_xc, E_xc1 = self.E_tot(Vee_old, Vxc_old)
         E_old = E_ks + E_ee + E_xc + E_xc1
 
         self._save_iteration(self.P, V_mixed, self.v_nuc, Vee_old, Vxc_old,
                              E_old, E_ks, E_ee, E_xc, E_xc1, None)
 
         for it in range(1, Nmax + 1):
-            self.solve_ks(V_mixed, En=-0.5 * self.Z**2)
-            self.normalize()
-
+            self.P, norm_before, norm_after = self.solve_ks(V_mixed, En=E_ks)
+            print(f" Iter {it}: eigenvalue={E_ks}, norm before={norm_before}, norm after={norm_after}")
             V_new, Vee_new, Vxc_new = self.get_v_ks()
             V_mixed = alpha * V_new + (1.0 - alpha) * V_old
 
-            E_ks = self.ks_energy()
-            E_ee, E_xc, E_xc1 = self.total_energy(Vee_new, Vxc_new)
+            E_ks = self.E_ks(V_mixed)
+            E_ee, E_xc, E_xc1 = self.E_tot(Vee_new, Vxc_new)
             E_new = E_ks + E_ee + E_xc + E_xc1
 
             dE = abs(E_new - E_old)
-            logger.info(f"Step {it}: E = {E_new:.6f} a.u., dE = {dE:.6e}")
-
+            # logger.info(f"Step {it}: E = {E_new:.6f} a.u., dE = {dE:.6e}")
             self._save_iteration(self.P, V_mixed, self.v_nuc, self.v_ee, self.v_xc,
                                  E_new, E_ks, E_ee, E_xc, E_xc1, dE)
 
+            # return self.history, self.P_analytical
             if dE < prec:
                 logger.info(f"🎯SCF converged in {it} iterations: Final Energy = {E_new:.6f} a.u.")
                 return self.history, self.P_analytical
@@ -297,15 +286,16 @@ class RadialDFT:
 
 
 if __name__ == "__main__":
+    from matplotlib import pyplot as plt
     # Parameters
     Z = 6  # Nuclear charge for Hydrogen-like atom
     r0 = 1e-5  # Minimum radius
     rf = 20.0  # Maximum radius
-    N = 10001  # Number of mesh points
+    N = 10000  # Number of mesh points
 
     alpha = 0.1  # Mixing parameter for SCF
     prec = 1e-5  # Convergence tolerance
-    max_iter = 50  # Maximum number of SCF iterations
+    max_iter = 500  # Maximum number of SCF iterations
 
     # Initialize radial mesh
     r, h = initialize_mesh(r0, rf, N)
@@ -314,4 +304,24 @@ if __name__ == "__main__":
     solver = RadialDFT(Z, r, h)
     solver.initialize()
     solver.normalize()
-    solver.scf_loop(alpha=alpha, prec=prec, Nmax=max_iter)
+    history, P_analytical = solver.scf_loop(alpha=alpha, prec=prec, Nmax=max_iter)
+
+    P_history = history['P'][1]
+    V_KS = history['V_ks'][1]
+    V_nuc = history['V_nuc'][1]
+    V_ee = history['V_ee'][1]
+    V_xc = history['V_xc'][1]
+
+    plt.figure(figsize=(12, 5))
+    plt.plot(r, V_nuc, label='V_nuc(r)', color='black', lw=2)
+    plt.plot(r, V_ee, label='V_ee(r)', color='green', lw=2)
+    plt.plot(r, V_xc, label='V_xc(r)', color='purple', lw=2)
+    plt.plot(r, V_KS, label='V_KS(r)', color='red', lw=2)
+    plt.ylabel('Radial Wavefunction P(r)')
+    plt.xlim([0, 0.25])
+    plt.ylim([-100, 100])
+
+    plt.legend()
+    plt.grid()
+    plt.xlim(0, 1)
+    plt.show()
