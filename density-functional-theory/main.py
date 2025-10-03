@@ -73,10 +73,10 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
     solver = RadialDFT(Z, r, h)
     solver.initialize()            # Analytical initial guess
     logger.info(f"Wavefunction initialized for Z={Z}")
-    solver.normalize()
+    solver.norm()
 
     logger.info("Starting SCF loop...")
-    data, P_analytical = solver.scf_loop(prec, alpha, max_iter)  # Run SCF loop
+    data, P_analytical, E_tot = solver.scf_loop(prec, alpha, max_iter)  # Run SCF loop
     logger.info("SCF loop completed.")
 
     if visualize:
@@ -87,14 +87,14 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
     V_nuc = data['V_nuc']
     V_ee = data['V_ee']
     V_xc = data['V_xc']
-    E_history = data['TotE']
+    E_tot_history = data['TotE']
     E_ks_history = data['E_ks']
     E_ee_history = data['E_ee']
     E_xc_history = data['E_xc']
     E_xc1_history = data['E_xc1']
     dE_history = data['dE']
 
-    logger.info(f"\nTotal Energy: {E_history[-1]:.6f} a.u."
+    logger.info(f"\nTotal Energy: {E_tot_history[-1]:.6f} a.u."
                 f"\nKohn-Sham energy: {E_ks_history[-1]:.6f} a.u."
                 f"\nElectron-electron energy: {E_ee_history[-1]:.6f} a.u."
                 f"\nExchange-correlation energy (density integral): {E_xc_history[-1]:.6f} a.u."
@@ -134,8 +134,8 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
     logger.info("Writing Energy data...")
     with open("energy.dat", "w") as f:
         f.write(f"#\tIteration\tTotE\tE_KS\tE_ee\tE_xc\tE_xc1\tdE\n")
-        for i in range(len(E_history)):
-            f.write(f"\t{i}\t{E_history[i]:<20.15f}\t{E_ks_history[i]:<20.15f}\t{E_ee_history[i]:<20.15f}\t{E_xc_history[i]:<20.15f}\t{E_xc1_history[i]:<20.15f}\t{dE_history[i] if dE_history[i] is not None else 0.0:<20.12e}\n")
+        for i in range(len(E_tot_history)):
+            f.write(f"\t{i}\t{E_tot_history[i]:<20.15f}\t{E_ks_history[i]:<20.15f}\t{E_ee_history[i]:<20.15f}\t{E_xc_history[i]:<20.15f}\t{E_xc1_history[i]:<20.15f}\t{dE_history[i] if dE_history[i] is not None else 0.0:<20.12e}\n")
 
     logger.info("Energy data written to file.")
     logger.info("DFT calculation completed successfully.")
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     # Parameters
     Z = 6  # Nuclear charge for Hydrogen-like atom
     r0 = 1e-5  # Minimum radius
-    rf = 20.0  # Maximum radius
+    rf = 5.0  # Maximum radius
     N = 10000  # Number of mesh points
 
     alpha = 0.1  # Mixing parameter for SCF
