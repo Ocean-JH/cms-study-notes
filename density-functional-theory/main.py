@@ -145,7 +145,7 @@ if __name__ == "__main__":
     # Parameters
     Z = 6  # Nuclear charge for Hydrogen-like atom
     r0 = 1e-5  # Minimum radius
-    rf = 5.0  # Maximum radius
+    rf = 9.0  # Maximum radius
     N = 10000  # Number of mesh points
 
     alpha = 0.1  # Mixing parameter for SCF
