@@ -111,9 +111,9 @@ class RadialDFT:
 
         # rho = (self.P / self.r)**2
         for i in range(self.N):
-            ro = (self.P[i] / self.r[i])**2                         # charge density
-            rs = (3.0 / (4.0 * np.pi * ro))**(1.0/3.0)
-            Vx = -(3.0 * ro / np.pi)**(1.0/3.0)                     # exchange potential
+            rho = (self.P[i] / self.r[i])**2                         # charge density
+            rs = (3.0 / (4.0 * np.pi * rho))**(1.0/3.0)
+            Vx = -(3.0 * rho / np.pi)**(1.0/3.0)                     # exchange potential
 
             # correlation potential
             if rs < 1.0:
@@ -135,7 +135,6 @@ class RadialDFT:
         v_ee = self.get_v_ee()
         v_xc = self.get_v_xc()
         self.v_ks = v_nuc + v_ee + v_xc
-        # print(v_xc[4610:4615])
 
         return self.v_ks, self.v_ee, self.v_xc
 
@@ -176,7 +175,6 @@ class RadialDFT:
             Y[i] = alpha[i+1] * Y[i+1] + beta[i+1]          # see Eq. (3) from Thomas method https://www.dsedu.org/courses/dft/thomas
 
         self.P = Y                                          # P(1) and P(N) are fixed
-
         norm = self.norm()
         # norm_after = self.norm()
 
@@ -208,9 +206,9 @@ class RadialDFT:
         E_xc = np.zeros_like(self.r, dtype=float)
 
         for i, pi in enumerate(self.P):
-            ro = (pi / self.r[i])**2
-            rs = (3.0 / (4.0 * np.pi * ro))**(1.0/3.0)
-            Ex = -0.75 * (3.0 * ro / np.pi)**(1.0/3.0)
+            rho = (pi / self.r[i])**2
+            rs = (3.0 / (4.0 * np.pi * rho))**(1.0/3.0)
+            Ex = -0.75 * (3.0 * rho / np.pi)**(1.0/3.0)
             if rs < 1.0:
                 Ec = A * np.log(rs) + B + C * rs * np.log(rs) + D * rs
             else:
@@ -232,9 +230,9 @@ class RadialDFT:
         rho = (self.P / self.r) ** 2
         exc_density = self.e_xc()
 
-        E_ee = -0.5 * 4.0 * np.pi * np.trapezoid(rho * V_ee, self.r)
-        E_xc = 4.0 * np.pi * np.trapezoid(rho * exc_density, self.r)
-        E_xc1 = -4.0 * np.pi * np.trapezoid(rho * V_xc, self.r)
+        E_ee = -0.5 * 4.0 * np.pi * np.trapezoid(rho * V_ee * self.r**2, self.r)
+        E_xc = 4.0 * np.pi * np.trapezoid(rho * exc_density * self.r**2, self.r)
+        E_xc1 = -4.0 * np.pi * np.trapezoid(rho * V_xc * self.r**2, self.r)
 
         logger.debug(f"Total energies: E_ee={E_ee}, E_xc={E_xc}, E_xc1={E_xc1}")
         return E_ee, E_xc, E_xc1
@@ -278,12 +276,11 @@ class RadialDFT:
             E_tot = eps_new + E_ee + E_xc + E_xc1
 
             d_eps = abs(eps_new - eps)
-            print(f" Iter {it}: eigenvalue={eps}, norm={norm}, d_eps={d_eps:.6e}")
 
             self._save_iteration(self.P, V_mixed, self.v_nuc, Vee_new, Vxc_new, eps, E_ee, E_xc, E_xc1, E_tot, norm, d_eps)
 
-            # logger.info(
-            #     f"Iter {it}: ε = {eps_new:.8f}, Δε = {d_eps:.3e}")
+            logger.info(
+                f"Iter {it}: ε = {eps_new:.8f}, norm={norm}, Δε = {d_eps:.3e}")
             # return self.history, self.P_analytical, E_tot
             if d_eps < prec:
                 logger.info(f"🎯 SCF converged in {it} iterations on eigenvalue: ε = {eps_new:.8f}")
@@ -302,7 +299,7 @@ if __name__ == "__main__":
     # Parameters
     Z = 6  # Nuclear charge for Hydrogen-like atom
     r0 = 1e-5  # Minimum radius
-    rf = 9.0  # Maximum radius
+    rf = 20.0  # Maximum radius
     N = 10000  # Number of mesh points
 
     alpha = 0.1  # Mixing parameter for SCF
@@ -316,7 +313,6 @@ if __name__ == "__main__":
     solver = RadialDFT(Z, r, h)
     solver.initialize()
     norm = solver.norm()
-    print(f"norm of initial radial wave function: {norm}")
     history, P_analytical, _= solver.scf_loop(alpha=alpha, prec=prec, Nmax=max_iter)
 
     P_history = history['P'][1]
