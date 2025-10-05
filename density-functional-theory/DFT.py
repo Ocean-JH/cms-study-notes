@@ -62,8 +62,6 @@ class RadialDFT:
 
     def norm(self):
         norm = np.sqrt(4.0 * np.pi * np.trapezoid(self.P ** 2, self.r))
-        if norm == 0.0:
-            raise ValueError("Wave function norm is zero, cannot normalize.")
         self.P /= norm
         return norm
 
@@ -129,14 +127,14 @@ class RadialDFT:
 
         return self.v_xc
 
-    def get_v_ks(self):
+    def get_v(self):
         """Total Kohn-Sham potential V_KS = V_nuc + V_ee + V_xc"""
         v_nuc = self.get_v_nuc()
         v_ee = self.get_v_ee()
         v_xc = self.get_v_xc()
         self.v_ks = v_nuc + v_ee + v_xc
 
-        return self.v_ks, self.v_ee, self.v_xc
+        return self.v_ks, self.v_nuc, self.v_ee, self.v_xc
 
     def solve_ks(self, V, eps):
         """Solve the Kohn-Sham equation using Numerov + Thomas method"""
@@ -161,9 +159,9 @@ class RadialDFT:
             Ai =  1.0 + h2 / 12.0 * fi_1
             Bi =  1.0 + h2 / 12.0 * fi1
             Ci = -2.0 + 5.0 * h2 / 6.0 * fi
+
             # see Eq. (4) from Thomas method https://www.dsedu.org/courses/dft/thomas
             AC = Ai * alpha[i] + Ci
-
             alpha[i+1] = - Bi / AC
             beta[i+1] = - Ai * beta[i] / AC
 
@@ -176,7 +174,6 @@ class RadialDFT:
 
         self.P = Y                                          # P(1) and P(N) are fixed
         norm = self.norm()
-        # norm_after = self.norm()
 
         return self.P, norm
 
@@ -189,7 +186,6 @@ class RadialDFT:
             d2P[i] = (self.P[i + 1] - 2.0 * self.P[i] + self.P[i - 1]) / h2     # Finite difference for second derivative
 
         d2P[0] = (self.P[1] - 2.0 * self.P[0]) / h2
-        # d2P[-1] = (self.P[-1] - 2.0 * self.P[-2] + self.P[-3]) / h2
 
         integrand = self.P * (-0.5 * d2P + V * self.P)
 
@@ -254,33 +250,34 @@ class RadialDFT:
         self.history["dE"].append(dE)
 
     def scf_loop(self, prec=1e-5, alpha=0.1, Nmax=100):
-        V_old, Vee_old, Vxc_old = self.get_v_ks()
-        V_mixed = V_old.copy()
+        V_ks, Vnuc, Vee, Vxc = self.get_v()
+
+        # Here we use only nuclear potential as initial guess instead of full V_ks
+        V_old = Vnuc.copy()
+        V_mixed = V_old
 
         eps = - 0.5 * self.Z**2
 
-        E_ee, E_xc, E_xc1 = self.E_tot(Vee_old, Vxc_old)
+        E_ee, E_xc, E_xc1 = self.E_tot(Vee, Vxc)
         E_tot = eps + E_ee + E_xc + E_xc1
-        norm = self.norm()
-
-        self._save_iteration(self.P, V_mixed, self.v_nuc, Vee_old, Vxc_old, eps, E_ee, E_xc, E_xc1, E_tot, norm, None)
+        d_eps = None
 
         for it in range(1, Nmax + 1):
             self.P, norm = self.solve_ks(V_mixed, eps=eps)
-            eps_new = self.E_ks(V_mixed)
+            self._save_iteration(self.P, V_mixed, self.v_nuc, Vee, Vxc, eps, E_ee, E_xc, E_xc1, E_tot, norm, d_eps)
 
-            V_new, Vee_new, Vxc_new = self.get_v_ks()
+            logger.info(f"Iter {it}: ε = {eps:.8f}, norm={norm}, Δε = {f'{d_eps:.3e}' if d_eps is not None else "N/A"}")
+
+            V_new, Vnuc, Vee, Vxc = self.get_v()
             V_mixed = alpha * V_new + (1.0 - alpha) * V_old
 
-            E_ee, E_xc, E_xc1 = self.E_tot(Vee_new, Vxc_new)
+            eps_new = self.E_ks(V_mixed)
+
+            E_ee, E_xc, E_xc1 = self.E_tot(Vee, Vxc)
             E_tot = eps_new + E_ee + E_xc + E_xc1
 
             d_eps = abs(eps_new - eps)
 
-            self._save_iteration(self.P, V_mixed, self.v_nuc, Vee_new, Vxc_new, eps, E_ee, E_xc, E_xc1, E_tot, norm, d_eps)
-
-            logger.info(
-                f"Iter {it}: ε = {eps_new:.8f}, norm={norm}, Δε = {d_eps:.3e}")
             # return self.history, self.P_analytical, E_tot
             if d_eps < prec:
                 logger.info(f"🎯 SCF converged in {it} iterations on eigenvalue: ε = {eps_new:.8f}")
@@ -299,8 +296,8 @@ if __name__ == "__main__":
     # Parameters
     Z = 6  # Nuclear charge for Hydrogen-like atom
     r0 = 1e-5  # Minimum radius
-    rf = 20.0  # Maximum radius
-    N = 10000  # Number of mesh points
+    rf = 10.0  # Maximum radius
+    N = 1000  # Number of mesh points
 
     alpha = 0.1  # Mixing parameter for SCF
     prec = 1e-5  # Convergence tolerance
@@ -315,22 +312,22 @@ if __name__ == "__main__":
     norm = solver.norm()
     history, P_analytical, _= solver.scf_loop(alpha=alpha, prec=prec, Nmax=max_iter)
 
-    P_history = history['P'][1]
-    V_KS = history['V_ks'][1]
-    V_nuc = history['V_nuc'][1]
-    V_ee = history['V_ee'][1]
-    V_xc = history['V_xc'][1]
-
-    plt.figure(figsize=(12, 5))
-    plt.plot(r, V_nuc, label='V_nuc(r)', color='black', lw=2)
-    plt.plot(r, V_ee, label='V_ee(r)', color='green', lw=2)
-    plt.plot(r, V_xc, label='V_xc(r)', color='purple', lw=2)
-    plt.plot(r, V_KS, label='V_KS(r)', color='red', lw=2)
-    plt.ylabel('Radial Wavefunction P(r)')
-    plt.xlim([0, 0.25])
-    plt.ylim([-100, 100])
-
-    plt.legend()
-    plt.grid()
-    plt.xlim(0, 1)
-    plt.show()
+    # P_history = history['P'][1]
+    # V_KS = history['V_ks'][1]
+    # V_nuc = history['V_nuc'][1]
+    # V_ee = history['V_ee'][1]
+    # V_xc = history['V_xc'][1]
+    #
+    # plt.figure(figsize=(12, 5))
+    # plt.plot(r, V_nuc, label='V_nuc(r)', color='black', lw=2)
+    # plt.plot(r, V_ee, label='V_ee(r)', color='green', lw=2)
+    # plt.plot(r, V_xc, label='V_xc(r)', color='purple', lw=2)
+    # plt.plot(r, V_KS, label='V_KS(r)', color='red', lw=2)
+    # plt.ylabel('Radial Wavefunction P(r)')
+    # plt.xlim([0, 0.25])
+    # plt.ylim([-100, 100])
+    #
+    # plt.legend()
+    # plt.grid()
+    # plt.xlim(0, 1)
+    # plt.show()

@@ -56,8 +56,8 @@ def plot(dft: RadialDFT, wavefunc=True, potential=True):
         plt.title('Radial Potentials')
         plt.legend()
         plt.grid()
-        plt.xlim(0, 0.25)
-        plt.ylim(-500, 500)
+        plt.xlim(0, 0.15)
+        plt.ylim(-300, 50)
 
         plt.tight_layout()
         plt.savefig("potential.png", dpi=300)
@@ -145,8 +145,8 @@ if __name__ == "__main__":
     # Parameters
     Z = 6  # Nuclear charge for Hydrogen-like atom
     r0 = 1e-5  # Minimum radius
-    rf = 9.0  # Maximum radius
-    N = 10000  # Number of mesh points
+    rf = 10.0  # Maximum radius
+    N = 1000  # Number of mesh points
 
     alpha = 0.1  # Mixing parameter for SCF
     prec = 1e-5  # Convergence tolerance
