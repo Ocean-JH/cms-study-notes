@@ -280,7 +280,10 @@ class RadialDFT:
 
             # return self.history, self.P_analytical, E_tot
             if d_eps < prec:
+                logger.info(f"Iter {it}: ε = {eps:.8f}, norm={norm}, Δε = {f'{d_eps:.3e}' if d_eps is not None else "N/A"}")
                 logger.info(f"🎯 SCF converged in {it} iterations on eigenvalue: ε = {eps_new:.8f}")
+
+                self._save_iteration(self.P, V_mixed, self.v_nuc, Vee, Vxc, eps, E_ee, E_xc, E_xc1, E_tot, norm, d_eps)
 
                 return self.history, self.P_analytical, E_tot
 
