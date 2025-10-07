@@ -249,7 +249,10 @@ class RadialDFT:
         self.history["Norm"].append(norm)
         self.history["dE"].append(dE)
 
-    def scf_loop(self, prec=1e-5, alpha=0.1, Nmax=100):
+    def scf_loop(self, prec=1e-5, alpha=0.1, Nmax=100, verbose=True):
+        if not verbose:
+            logger.setLevel(logging.CRITICAL)
+
         V_ks, Vnuc, Vee, Vxc = self.get_v()
 
         # Here we use only nuclear potential as initial guess instead of full V_ks
@@ -290,12 +293,11 @@ class RadialDFT:
             eps = eps_new
             V_old = V_mixed
 
-        logger.error(f"⚠️ SCF NOT converged after {Nmax} iterations. Last Δε = {d_eps:.6e}")
+        logger.critical(f"⚠️ SCF NOT converged after {Nmax} iterations. Last Δε = {d_eps:.6e}")
         raise RuntimeError(f"SCF did not converge after {Nmax} iterations. Last Δε = {d_eps:.6e}")
 
 
 if __name__ == "__main__":
-    from matplotlib import pyplot as plt
     # Parameters
     Z = 6  # Nuclear charge for Hydrogen-like atom
     r0 = 1e-5  # Minimum radius
@@ -314,23 +316,3 @@ if __name__ == "__main__":
     solver.initialize()
     norm = solver.norm()
     history, P_analytical, _= solver.scf_loop(alpha=alpha, prec=prec, Nmax=max_iter)
-
-    # P_history = history['P'][1]
-    # V_KS = history['V_ks'][1]
-    # V_nuc = history['V_nuc'][1]
-    # V_ee = history['V_ee'][1]
-    # V_xc = history['V_xc'][1]
-    #
-    # plt.figure(figsize=(12, 5))
-    # plt.plot(r, V_nuc, label='V_nuc(r)', color='black', lw=2)
-    # plt.plot(r, V_ee, label='V_ee(r)', color='green', lw=2)
-    # plt.plot(r, V_xc, label='V_xc(r)', color='purple', lw=2)
-    # plt.plot(r, V_KS, label='V_KS(r)', color='red', lw=2)
-    # plt.ylabel('Radial Wavefunction P(r)')
-    # plt.xlim([0, 0.25])
-    # plt.ylim([-100, 100])
-    #
-    # plt.legend()
-    # plt.grid()
-    # plt.xlim(0, 1)
-    # plt.show()

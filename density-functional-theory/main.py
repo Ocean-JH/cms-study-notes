@@ -23,7 +23,7 @@ if not logger.handlers:
     logger.addHandler(ch)
 
 
-def plot(dft: RadialDFT, wavefunc=True, potential=True):
+def plot(dft: RadialDFT, wavefunc=True, potential=True, savefig=True):
     """
     Plot numerical vs analytical wavefunctions and potentials.
     """
@@ -42,8 +42,11 @@ def plot(dft: RadialDFT, wavefunc=True, potential=True):
         plt.xlim(0, 0.25)
 
         plt.tight_layout()
-        plt.savefig("wavefunction.png", dpi=300)
-        # plt.show()
+
+        if savefig:
+            plt.savefig("wavefunction.png", dpi=300)
+        else:
+            plt.show()
 
     if potential:
         plt.figure(figsize=(12, 5))
@@ -60,11 +63,17 @@ def plot(dft: RadialDFT, wavefunc=True, potential=True):
         plt.ylim(-300, 50)
 
         plt.tight_layout()
-        plt.savefig("potential.png", dpi=300)
-        # plt.show()
+
+        if savefig:
+            plt.savefig("potential.png", dpi=300)
+        else:
+            plt.show()
 
 
-def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
+def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True, verbose=True, save=True):
+    if not verbose:
+        logger.setLevel(logging.CRITICAL)
+
     # Initialize radial mesh
     r, h = initialize_mesh(r0, rf, N)
     logger.info(f"Mesh initialized: r0={r0}, rf={rf}, N={N}, h={h:.6f}")
@@ -80,7 +89,7 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
     logger.info("SCF loop completed.")
 
     if visualize:
-        plot(solver)
+        plot(solver, savefig=save)
 
     P_history = data['P']
     V_KS = data['V_ks']
@@ -101,55 +110,108 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True):
                 f"\nExchange-correlation energy (from potential): {E_xc1_history[-1]:.6f} a.u.")
 
     logger.info("Writing wavefunctions and potentials...")
-    with open("wavefunction.dat", "w") as f:
-        f.write(f"#  Wavefunction Data\n")
-        f.write(f"Total Iterations: {len(P_history)}\n\n")
-        for i in range(1, len(P_history)+1):
-            f.write(f"# Iteration {i}:\n")
+
+    if save:
+        with open("wavefunction.dat", "w") as f:
+            f.write(f"#  Wavefunction Data\n")
+            f.write(f"Total Iterations: {len(P_history)}\n\n")
+            for i in range(1, len(P_history)+1):
+                f.write(f"# Iteration {i}:\n")
+                f.write(f"#\tr(a.u.)\tP(r)\tP0(r)\terror (P(i)-P0(i))\n")
+                for j in range(N):
+                    f.write(f"{r[j]:<20.15f}\t{P_history[i-1][j]:<20.15f}\t{P_analytical[j]:<20.15f}\t{(P_analytical[j] - P_history[i-1][j]):<20.12e}\n")
+                f.write("\n")
+            f.write(f"# Iteration {len(P_history)} - Final Results:\n")
             f.write(f"#\tr(a.u.)\tP(r)\tP0(r)\terror (P(i)-P0(i))\n")
             for j in range(N):
-                f.write(f"{r[j]:<20.15f}\t{P_history[i-1][j]:<20.15f}\t{P_analytical[j]:<20.15f}\t{(P_analytical[j] - P_history[i-1][j]):<20.12e}\n")
-            f.write("\n")
-        f.write(f"# Iteration {len(P_history)} - Final Results:\n")
-        f.write(f"#\tr(a.u.)\tP(r)\tP0(r)\terror (P(i)-P0(i))\n")
-        for j in range(N):
-            f.write(f"{r[j]:<20.15f}\t{P_history[-1][j]:<20.15f}\t{P_analytical[j]:<20.15f}\t{(P_analytical[j] - P_history[-1][j]):<20.12e}\n")
+                f.write(f"{r[j]:<20.15f}\t{P_history[-1][j]:<20.15f}\t{P_analytical[j]:<20.15f}\t{(P_analytical[j] - P_history[-1][j]):<20.12e}\n")
 
-    with open("potential.dat", "w") as f:
-        f.write(f"#  Potential Data\n")
-        f.write(f"Total Iterations: {len(V_KS)}\n\n")
-        for i in range(1, len(V_KS)+1):
-            f.write(f"# Iteration {i}:\n")
+        with open("potential.dat", "w") as f:
+            f.write(f"#  Potential Data\n")
+            f.write(f"Total Iterations: {len(V_KS)}\n\n")
+            for i in range(1, len(V_KS)+1):
+                f.write(f"# Iteration {i}:\n")
+                f.write(f"#\tr(a.u.)\tV_nuc(r)\tV_ee(r)\tV_xc(r)\tV_ks(r)\n")
+                for j in range(N):
+                    f.write(f"{r[j]:<20.15f}{V_nuc[i-1][j]:<20.15f}{V_ee[i-1][j]:<20.15f}{V_xc[i-1][j]:<20.15f}{V_KS[i-1][j]:<20.15f}\n")
+                f.write("\n")
+            f.write(f"# Iteration {len(V_KS)} - Final Results:\n")
             f.write(f"#\tr(a.u.)\tV_nuc(r)\tV_ee(r)\tV_xc(r)\tV_ks(r)\n")
             for j in range(N):
-                f.write(f"{r[j]:<20.15f}{V_nuc[i-1][j]:<20.15f}{V_ee[i-1][j]:<20.15f}{V_xc[i-1][j]:<20.15f}{V_KS[i-1][j]:<20.15f}\n")
-            f.write("\n")
-        f.write(f"# Iteration {len(V_KS)} - Final Results:\n")
-        f.write(f"#\tr(a.u.)\tV_nuc(r)\tV_ee(r)\tV_xc(r)\tV_ks(r)\n")
-        for j in range(N):
-            f.write(f"{r[j]:<20.15f}\t{V_nuc[i-1][j]:<20.15f}\t{V_ee[-1][j]:<20.15f}\t{V_xc[-1][j]:<20.15f}\t{V_KS[-1][j]:<20.15f}\n")
+                f.write(f"{r[j]:<20.15f}\t{V_nuc[i-1][j]:<20.15f}\t{V_ee[-1][j]:<20.15f}\t{V_xc[-1][j]:<20.15f}\t{V_KS[-1][j]:<20.15f}\n")
 
-    logger.info("Wavefunction and potential data written to files.")
+        with open("energy.dat", "w") as f:
+            f.write(f"#\tIteration\tTotE\tE_KS\tE_ee\tE_xc\tE_xc1\tdE\n")
+            for i in range(len(E_tot_history)):
+                f.write(f"\t{i}\t{E_tot_history[i]:<20.15f}\t{E_ks_history[i]:<20.15f}\t{E_ee_history[i]:<20.15f}\t{E_xc_history[i]:<20.15f}\t{E_xc1_history[i]:<20.15f}\t{dE_history[i] if dE_history[i] is not None else 0.0:<20.12e}\n")
 
-    logger.info("Writing Energy data...")
-    with open("energy.dat", "w") as f:
-        f.write(f"#\tIteration\tTotE\tE_KS\tE_ee\tE_xc\tE_xc1\tdE\n")
-        for i in range(len(E_tot_history)):
-            f.write(f"\t{i}\t{E_tot_history[i]:<20.15f}\t{E_ks_history[i]:<20.15f}\t{E_ee_history[i]:<20.15f}\t{E_xc_history[i]:<20.15f}\t{E_xc1_history[i]:<20.15f}\t{dE_history[i] if dE_history[i] is not None else 0.0:<20.12e}\n")
-
-    logger.info("Energy data written to file.")
-    logger.info("DFT calculation completed successfully.")
+    return E_ks_history[-1], len(E_ks_history)
 
 
 if __name__ == "__main__":
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import warnings
+
+
     # Parameters
     Z = 6  # Nuclear charge for Hydrogen-like atom
     r0 = 1e-5  # Minimum radius
-    rf = 10.0  # Maximum radius
-    N = 1000  # Number of mesh points
+    rf = 6.0  # Maximum radius
+    N = 10000  # Number of mesh points
 
     alpha = 0.1  # Mixing parameter for SCF
     prec = 1e-5  # Convergence tolerance
     max_iter = 300  # Maximum number of SCF iterations
 
-    main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True)
+    # Parameter sweep over rf and N
+    rf_values = np.linspace(5, 20, 16)
+    n_values  = np.linspace(1000, 10000, 10, dtype=int)
+    results = []
+
+    warnings.filterwarnings("error", category=RuntimeWarning)
+    for rf in rf_values:
+        diverged = False
+        for N in n_values:
+            if diverged:
+                print(f"⚠️ Skipping rf={rf}, N={N} due to previous divergence.")
+                results.append((rf, N, np.nan, np.nan, "Skipped"))
+                continue
+
+            try:
+                print(f"Start running with parameters: rf={rf}, N={N}\t\tRemaining cases: {len(rf_values)*len(n_values) - len(results) - 1}")
+
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("error", category=RuntimeWarning)
+                    eps, iters = main(Z, r0, rf, N, alpha, prec, max_iter, visualize=False, verbose=False, save=False)
+                    results.append((rf, N, eps, iters, "Converged"))
+
+                    print(f"  ✅ Kohn-Sham energy: {eps:.6f} a.u. after {iters} iterations.")
+            except RuntimeWarning as e:
+                results.append((rf, N, np.nan, np.nan, "Diverged"))
+                print(f"  ❌ Failed for rf={rf}, N={N}: {e}")
+                diverged = True
+
+    df = pd.DataFrame(results, columns=["rf", "n", "eigval", "iterations", "status"])
+
+    md_table = df.to_markdown(index=False, tablefmt="github", floatfmt=".6f")
+    with open("parameter_sweep.md", "w") as f:
+        f.write(md_table)
+
+    df.loc[df["status"] != "Converged", ["eigval", "iterations"]] = np.nan
+
+    plt.figure(figsize=(12, 5))
+
+    for rf in sorted(df["rf"].unique()):
+        subset = df[df["rf"] == rf]
+        plt.plot(subset["n"], subset["eigval"], marker="o", label=f"rf={rf:.1f}")
+
+    plt.xlabel("n (number of grid points)")
+    plt.ylabel("Final eigenvalue")
+    plt.title("Eigenvalue vs n (Converged only)")
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.savefig("convergence.png", dpi=300)
+    plt.show()
