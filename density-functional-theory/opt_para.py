@@ -56,7 +56,7 @@ def opt_integration_parameters(Z, r0, alpha=0.1, prec=1e-5, max_iter=500):
     df = pd.DataFrame(results, columns=["rf", "n", "eigval", "iterations", "status"])
 
     md_table = df.to_markdown(index=False, tablefmt="github", floatfmt=".6f")
-    with open("parameter_sweep.md", "w") as f:
+    with open("int_para_sweep.md", "w") as f:
         f.write(md_table)
 
     df.loc[df["status"] != "Converged", ["eigval", "iterations"]] = np.nan
