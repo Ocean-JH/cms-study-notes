@@ -149,69 +149,15 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True, verbose=True, save
 
 
 if __name__ == "__main__":
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import warnings
-
-
     # Parameters
     Z = 6  # Nuclear charge for Hydrogen-like atom
     r0 = 1e-5  # Minimum radius
-    rf = 6.0  # Maximum radius
-    N = 10000  # Number of mesh points
+    rf = 20.0  # Maximum radius
+    N = 8000  # Number of mesh points
 
     alpha = 0.1  # Mixing parameter for SCF
     prec = 1e-5  # Convergence tolerance
     max_iter = 300  # Maximum number of SCF iterations
 
-    # Parameter sweep over rf and N
-    rf_values = np.linspace(5, 20, 16)
-    n_values  = np.linspace(1000, 10000, 10, dtype=int)
-    results = []
-
-    warnings.filterwarnings("error", category=RuntimeWarning)
-    for rf in rf_values:
-        diverged = False
-        for N in n_values:
-            if diverged:
-                print(f"⚠️ Skipping rf={rf}, N={N} due to previous divergence.")
-                results.append((rf, N, np.nan, np.nan, "Skipped"))
-                continue
-
-            try:
-                print(f"Start running with parameters: rf={rf}, N={N}\t\tRemaining cases: {len(rf_values)*len(n_values) - len(results) - 1}")
-
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("error", category=RuntimeWarning)
-                    eps, iters = main(Z, r0, rf, N, alpha, prec, max_iter, visualize=False, verbose=False, save=False)
-                    results.append((rf, N, eps, iters, "Converged"))
-
-                    print(f"  ✅ Kohn-Sham energy: {eps:.6f} a.u. after {iters} iterations.")
-            except RuntimeWarning as e:
-                results.append((rf, N, np.nan, np.nan, "Diverged"))
-                print(f"  ❌ Failed for rf={rf}, N={N}: {e}")
-                diverged = True
-
-    df = pd.DataFrame(results, columns=["rf", "n", "eigval", "iterations", "status"])
-
-    md_table = df.to_markdown(index=False, tablefmt="github", floatfmt=".6f")
-    with open("parameter_sweep.md", "w") as f:
-        f.write(md_table)
-
-    df.loc[df["status"] != "Converged", ["eigval", "iterations"]] = np.nan
-
-    plt.figure(figsize=(12, 5))
-
-    for rf in sorted(df["rf"].unique()):
-        subset = df[df["rf"] == rf]
-        plt.plot(subset["n"], subset["eigval"], marker="o", label=f"rf={rf:.1f}")
-
-    plt.xlabel("n (number of grid points)")
-    plt.ylabel("Final eigenvalue")
-    plt.title("Eigenvalue vs n (Converged only)")
-    plt.legend()
-    plt.grid(True)
-
-    plt.tight_layout()
-    plt.savefig("convergence.png", dpi=300)
-    plt.show()
+    eps, iters = main(Z, r0, rf, N, alpha, prec, max_iter)
+    print(f"Final Kohn-Sham energy: {eps:.6f} a.u. after {iters} iterations.")
