@@ -9,23 +9,36 @@
 ## Table of Contents
 
 - [Abstract](#abstract)
-- [1. Introduction](#1-introduction)
-  - [1.1 Preliminary](#11-preliminary)
-  - [1.1.1 Density Functional Theory](#111-density-functional-theory)
-  - [1.1.2 Kohn-Sham Equations](#112-kohn-sham-equations)
-  - [1.1.3 Radial Kohn-Sham Equation](#113-radial-kohn-sham-equation)
-- [2. Numerical Implementation](#2-numerical-implementation)
+- [1. Density Functional Theory](#1-density-functional-theory)
+  - [1.1 Adiabatic and Single-Electron Approximations](#11-adiabatic-and-single-electron-approximations)
+  - [1.2 Thomas–Fermi–Dirac Approximation](#12-thomas–fermi–dirac-approximation)
+  - [1.3 Hohenberg–Kohn Theorems](#13-hohenberg–kohn-theorems)
+  - [1.4 Radial Kohn-Sham Equations](#14-radial-kohn-sham-equations)
+  - [1.5 Exchange–Correlation Functionals](#15-exchange–correlation-functionals)
+    - [1.5.1 Local Density Approximation (LDA)](#151-local-density-approximation-lda)
+    - [1.5.2 Generalized Gradient Approximation (GGA)](#152-generalized-gradient-approximation-gga)
+    - [1.5.3 Hybrid Functionals](#153-hybrid-functionals)
+  - [1.6 Software for DFT](#16-software-for-dft)
+- [2. Implementation](#2-implementation)
   - [2.1 Discretization](#21-discretization)
   - [2.2 Numerov Method](#22-numerov-method)
   - [2.3 Thomas Algorithm](#23-thomas-algorithm)
-  - [2.4 Self-Consistent Field Method](#24-self-consistent-field-method)
+  - [2.4 Self-Consistent Field](#24-self-consistent-field)
   - [2.5 Exchange-Correlation Functional](#25-exchange-correlation-functional)
-  - [2.6 Implementation Details](#26-implementation-details)
+  - [2.6 Validation](#26-validation)
+  - [2.7 Code Details](#27-code-details)
 - [3. Usage](#3-usage)
-- [4. Validation](#4-validation)
-- [5. Results and Discussion](#5-results-and-discussion)
-- [6. Mathematical Appendix](#6-mathematical-appendix)
-- [7. References](#7-references)
+- [4. Discussion](#4-discussion)
+  - [4.1 Optimization of DFT Parameters](#41-optimization-of-dft-parameters)
+    - [4.1.1 Optimization of Integration Parameters](#411-optimization-of-integration-parameters)
+    - [4.1.2 Mixing Parameter for SCF Convergence](#412-mixing-parameter-for-scf-convergence)
+  - [4.2 Known Numerical Issues](#42-known-numerical-issues)
+  - [4.3 Theoretical Extensions](#43-theoretical-extensions)
+- [5. References](#5-references)
+
+---
+
+
 
 <div id="abstract" style="border:1px solid #d0d7de; padding:16px; background:#e6ffef; border-radius:6px;">
 <strong style="font-size:1.05em;">Abstract</strong>
