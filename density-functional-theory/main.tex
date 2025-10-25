@@ -9,6 +9,8 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
 
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
@@ -35,224 +37,385 @@
 \lstset{style=code}
 
 \title{Radial Kohn-Sham Equation Solver for Hydrogen-like Atoms}
-\author{Jianghai Wang @Nanyang Technological University}
-\date{September 2025}
+\author{Wang Jianghai @Nanyang Technological University}
+\date{2025-10-24}
 
 \begin{document}
 
 \maketitle
 
-\section{Introduction}
+\tableofcontents
+\newpage
 
-This repository implements a numerical solution to the Kohn-Sham equations of Density Functional Theory (DFT) for hydrogen-like atoms. The implementation focuses on the radial component of the electronic wavefunction for atoms with spherical symmetry, solving the one-electron case with arbitrary nuclear charge $Z$. This provides a foundational example for understanding self-consistent field (SCF) methods in electronic structure calculations.
+\begin{tcolorbox}[colback=green!5!white,colframe=green!75!black,title=\textbf{Abstract}]
+This project implements a radial Kohn–Sham (KS) self-consistent field (SCF) solver for spherically symmetric (H-like) systems, focusing on the 1s orbital. The solver uses a fixed radial mesh, constructs the Kohn–Sham potential as
 
-\section{Theoretical Background}
+$$V_{\text{KS}}(r) = V_{\text{nuc}}(r) + V_{\text{ee}}(r) + V_{\text{xc}}(r),$$
 
-\subsection{Density Functional Theory}
+solves the radial KS differential equation with Numerov/Thomas tridiagonal propagation, computes energy components, and iterates until the KS eigenvalue ($\varepsilon$) converges. Exchange-correlation is handled in a local density approximation (LDA) with an analytic parameterization. The implementation is pedagogical and suitable for learning numerical Density Functional Theory (DFT) methods and numerical ordinary differential equation (ODE) solvers (Numerov and Thomas algorithms) in spherical coordinates.
+\end{tcolorbox}
 
-Density Functional Theory is a quantum mechanical modeling method used in physics, chemistry, and materials science to investigate the electronic structure of many-body systems. The fundamental principle of DFT is that the properties of a many-electron system can be determined using functionals of the spatially-dependent electron density rather than the many-body wavefunction.
+\section{Density Functional Theory}
 
-The theoretical foundation of DFT is based on two Hohenberg-Kohn theorems:
+Following the establishment of quantum mechanics and statistical physics, theoretical studies of condensed matter gradually emerged. It became clear that the macroscopic properties of solids are intrinsically linked to their electronic behavior. In principle, if one could exactly solve the electronic wave functions in a solid, all physical quantities of the system could be obtained through the corresponding quantum-mechanical operators. However, a typical solid contains on the order of $10^{23}$ particles, each with three spatial degrees of freedom, making the many-body Hamiltonian intractably complex and analytically unsolvable. Hence, appropriate approximations are essential.
+
+Density Functional Theory is a quantum mechanical modeling method used in physics, chemistry, and materials science to investigate the electronic structure of many-body systems. The fundamental principle of DFT is that the properties of a many-electron system can be determined using functionals of the spatially-dependent electron density rather than the many-body wavefunction, reducing the problem from a $3N$-dimensional space to only three dimensions. This fundamental reformulation significantly simplifies the calculation of electronic structure while retaining quantum-mechanical accuracy.
+
+\subsection{Adiabatic and Single-Electron Approximations}
+
+Because the mass of a nucleus is roughly 1800 times that of an electron, electrons respond much more rapidly to environmental changes than nuclei do. Thus, the physical problem can be decoupled into two parts: when describing electronic motion, the nuclei can be treated as fixed sources of potential, whereas when describing nuclear motion, the electronic distribution can be considered static. Solving the electronic problem under a fixed nuclear potential yields the lowest-energy configuration, i.e., the electronic ground state.
+
+This separation of electronic and nuclear motion forms the basis of the Born–Oppenheimer approximation, or the adiabatic approximation. It reduces the full many-body problem to a purely electronic one, with the ground-state energy $E(R_1, R_2, ..., R_M)$ depending on the nuclear positions {$R_i$}, thereby defining the adiabatic potential energy surface of the system.
+
+Even after separating nuclear and electronic motion, the electron–electron interaction remains a many-body problem involving $N$ particles. To address this, Hartree proposed averaging the instantaneous interactions between electrons, treating each electron as moving independently in an averaged potential—the Hartree approximation, or single-electron approximation. Although this simplification transformed the many-electron problem into a set of single-electron equations, it neglected electron exchange and correlation effects. Fock later incorporated the exchange interaction, leading to the Hartree–Fock approximation. While Hartree–Fock theory accurately accounts for exchange, it still neglects correlation effects, and its accuracy deteriorates with increasing electron number.
+
+\subsection{Thomas–Fermi–Dirac Approximation}
+
+In 1927, Thomas and Fermi proposed the homogeneous electron gas model, which neglects electron–electron interactions and expresses the total energy as a functional of electron density. In 1930, Dirac introduced a local approximation for exchange interactions, extending the model to account for exchange energy within the density functional framework. The combined formulation is known as the Thomas–Fermi–Dirac (TFD) approximation.
+
+\subsection{Hohenberg–Kohn Theorems}
+
+The theoretical foundation of modern DFT lies in two theorems proved by Hohenberg and Kohn.
 
 \begin{enumerate}
-    \item The ground-state properties of a many-electron system are uniquely determined by the electron density.
-    \item The electron density that minimizes the energy of the overall functional is the ground-state electron density.
+\item The ground-state properties of a many-electron system are uniquely determined by the electron density $n(\mathbf{r})$.
+\item The electron density that minimizes the energy of the overall functional is the ground-state electron density.
 \end{enumerate}
 
-\subsection{Kohn-Sham Equations}
+The energy functional can be expressed as:
+$$E[\psi_i] = -\frac{\hbar^2}{m}\int \psi_i^* \nabla^2 \psi_i d^3r + \int V(\mathbf{r}) n(\mathbf{r}) d^3r + \frac{e^2}{2}\iint \frac{n(\mathbf{r}) n(\mathbf{r'})}{|\mathbf{r}-\mathbf{r'}|} d^3r d^3r' + E_{\text{ion}} + E_{\text{XC}}[\psi_i]$$
 
-In practice, DFT calculations are performed using the Kohn-Sham approach, which replaces the original many-body problem by an auxiliary independent-particle problem. The Kohn-Sham equation in atomic units is:
+which contains the kinetic energy of electrons, electron–nucleus Coulomb interaction, electron–electron Coulomb repulsion, and nucleus–nucleus repulsion. The remaining term, $E_{\text{XC}}[\psi_i]$, is the exchange-correlation energy functional, which accounts for the complex many-body effects of exchange and correlation among electrons.
 
-\[
-\left[-\frac{1}{2}\frac{d^2}{dr^2} + \frac{l(l+1)}{2r^2}+V_\text{KS}(r)\right]P_{nl}(r) = \varepsilon_{nl}P_{nl}(r)
-\]
+\subsection{Radial Kohn-Sham Equations}
 
-where $P_{nl}(r)=r\Psi_{nl}(r)$ is the radial wave function, and $V_{\text{KS}}(\mathbf{r})$ is the Kohn-Sham potential:
+In practice, DFT calculations are performed using the Kohn-Sham approach, which replaces the original many-body problem by an auxiliary independent-particle problem.
 
-\[
-V_{\text{KS}}(\mathbf{r}) = V_\text{nuc}(r) + V_{ee}(r) + V_{xc}(r)
-\]
+Starting from the three-dimensional Schrödinger equation in spherical coordinates:
+
+$$\Psi \left( {r,\theta ,\varphi } \right) = \Psi \left( r \right)Y\left( {\theta ,\varphi } \right)$$
+
+where $Y( {\theta ,\varphi })$ is spherical harmonics. It can be separated on two independent equations for $r$ and $\theta ,\varphi$. The Schrodinger equation in spherical coordinates for part depending on $r$ only, the \textbf{radial Schrodinger equation} is
+
+$$\left[-\frac{1}{2r}\frac{d^2}{dr^2}r + \frac{l(l+1)}{2r^2} + V_\text{nuc}(r)\right]\Psi_{nl}(r) = E_{nl}\Psi_{nl}(r)$$
+
+where $V^{NUC}(r)=-\frac{Z}{r}$. For the ground state (1s orbital) with $n=1$, $l=0$, the centrifugal term vanishes, resulting in:
+
+$$\left[-\frac{1}{2}\frac{d^2}{dr^2} + V_\text{nuc}(r)\right]\Psi_{1s}(r) = E\Psi_{1s}(r)$$
+
+For atoms with spherical symmetry, we can separate the wavefunction into radial and angular parts:
+
+$$\psi_{nlm}(\mathbf{r}) = \frac{P_{nl}(r)}{r} Y_{lm}(\theta, \phi)$$
+
+where $Y_{lm}$ are spherical harmonics and $P_{nl}(r)$ is the radial wavefunction.
+
+\begin{tcolorbox}[colback=yellow!10!white,colframe=orange!75!black,title=\textbf{Radial vs. Full Wavefunction}]
+The distinction between the full wavefunction $\Psi_{nl}(r)$ and the radial wavefunction $P_{nl}(r)$ is critical. The radial wavefunction is defined as $P_{nl}(r) = r\Psi_{nl}(r)$, where the factor of $r$ arises from the Jacobian in spherical coordinates. The normalization condition for the radial function is $\sqrt{4\pi \int_0^\infty P_{nl}(r)^2 dr} = 1$, where the $4\pi$ factor comes from integrating over the spherical harmonics. This can be verified by calculating the norm of the analytical hydrogen solution: $4\pi \int_0^\infty \left(\frac{r}{\sqrt{\pi}}Z^{3/2}e^{-Zr}\right)^2 dr = 1$.
+\end{tcolorbox}
+
+Then the radial Kohn-Sham equation can be written as:
+
+$$\left[-\frac{1}{2}\frac{d^2}{dr^2} + \frac{l(l+1)}{2r^2}+V_\text{KS}(r)\right]P_{nl}(r) = \varepsilon_{nl}P_{nl}(r)$$
+
+where $P_{nl}(r)=r\Psi_{nl}(r)$ is the radial wave function, $V_{\text{KS}}(\mathbf{r})$ is the Kohn-Sham potential, given by:
+
+$$V_{\text{KS}}(\mathbf{r}) = V_\text{nuc}(r) + V_{ee}(r) + V_{xc}(r)$$
 
 comprising the nuclear attraction potential
-\[
-V_\text{nuc}(r)=-\frac{Z}{r},
-\]
+
+$$V_\text{nuc}(r)=-\frac{Z}{r}$$
+
 the electron-electron Coulomb repulsion potential
-\[
-V^{ee}(r) = 4\pi \int \frac{\rho(r')}{|r-r'|} r'^2 dr',
-\]
+
+$${V^{ee}}\left( r \right) = 4\pi \int {{{\rho \left( {r'} \right)} \over {\left| {r - r'} \right|}}} {r'^2}dr'$$
+
 and the exchange-correlation potential $V_{\text{xc}}$.
 
-\subsection{Radial Kohn-Sham Equation}
+For the ground state (1s orbital, with $l=0$), the radial Kohn-Sham equation becomes:
 
-For atoms with spherical symmetry:
-\[
-\psi_{nlm}(\mathbf{r}) = \frac{P_{nl}(r)}{r} Y_{lm}(\theta, \phi)
-\]
+$$\left[ -\frac{1}{2}\frac{d^2}{dr^2} + V_{{KS}}(r) \right] P_{10}(r) = \varepsilon_{10}P_{10}(r)$$
 
-where $Y_{lm}$ are spherical harmonics. For the ground state ($l=0$):
-\[
-\left[ -\frac{1}{2}\frac{d^2}{dr^2} + V_{{KS}}(r) \right] P_{10}(r) = \varepsilon_{10}P_{10}(r).
-\]
+This is the equation we solve numerically in this implementation.
 
-\section{Numerical Implementation}
+\subsection{Exchange–Correlation Functionals}
+
+The key unknown in DFT is the exchange-correlation functional $E_{XC}[\rho]$. While the Hohenberg–Kohn theorems guarantee its existence, its explicit form cannot be derived, and therefore various approximations are employed in practical calculations. The choice of an appropriate XC functional is crucial, as it directly determines both the accuracy and computational efficiency of DFT.
+
+\subsubsection{Local Density Approximation (LDA)}
+
+LDA assumes that the exchange–correlation energy at each point depends only on the local electron density, as in a uniform electron gas:
+$$V_{XC}(\mathbf{r}) = V_{XC}^{\text{electron gas}}[n(\mathbf{r})]$$
+
+Although this approximation neglects spatial variations in the density, it provides a tractable and often surprisingly effective method, especially for systems with slowly varying densities. However, it becomes inaccurate for systems with strong density gradients, such as covalently bonded materials.
+
+\subsubsection{Generalized Gradient Approximation (GGA)}
+
+GGA extends LDA by incorporating not only the local electron density but also its spatial gradient, making $E_{XC}$ a functional of both $n(\mathbf{r})$ and $\nabla n(\mathbf{r})$.
+$$E_{XC}^{\text{GGA}} = E_{XC}[n(\mathbf{r}), \nabla n(\mathbf{r})]$$
+This inclusion of local inhomogeneity typically improves accuracy over LDA. Common GGA functionals include \textbf{Perdew–Wang (PW91)} and \textbf{Perdew–Burke–Ernzerhof (PBE)}, both widely adopted in solid-state calculations.
+
+\subsubsection{Hybrid Functionals}
+
+Hybrid functionals combine the orbital-dependent Hartree–Fock exchange with density-based functionals, controlled by a mixing parameter $\lambda$. For instance, when $\lambda=0$, the exchange is purely Hartree–Fock; when $\lambda=1$, it is entirely LDA or GGA. The \textbf{Heyd–Scuseria–Ernzerhof (HSE)} hybrid functional, particularly \textbf{HSE06}, mixes 25\% of short-range Hartree–Fock exchange with 75\% of short-range PBE exchange, while using PBE for correlation and long-range exchange:
+$$E_{XC}^{\text{HSE06}} = \frac{1}{4}E_X^{\text{SR,HF}}(\mu) + \frac{3}{4}E_X^{\text{SR,PBE}}(\mu) + E_X^{\text{LR,PBE}}(\mu) + E_C^{\text{PBE}}$$
+Hybrid functionals often provide improved band-gap predictions and better descriptions of strongly correlated systems, though at significantly higher computational cost and with sensitivity to empirical parameters.
+
+\begin{tcolorbox}[colback=yellow!10!white,colframe=orange!75!black,title=\textbf{Self-Interaction Error}]
+A fundamental limitation inherent to approximate DFT functionals is the self-interaction error (SIE). In principle, the exact exchange–correlation potential should cancel the spurious Coulomb interaction of an electron with itself. However, approximate functionals do not fully achieve this cancellation, leading to a residual and unphysical electron self-interaction.
+
+As a result, DFT often exhibits several systematic deficiencies. First, it tends to overstabilize delocalized electronic states, leading to an underestimation of band gaps in semiconductors and insulators; Second, it underpredicts chemical reaction barriers, as transition states with stretched bonds are artificially stabilized; Finally, the highest occupied Kohn–Sham (KS) eigenvalue no longer corresponds to the true ionization potential, violating Koopmans' theorem.
+
+To mitigate SIE, various self-interaction correction (SIC) schemes have been developed, aiming to remove the spurious self-Coulomb energy from each occupied orbital. Alternatively, more sophisticated many-body approaches, such as the GW approximation or Møller–Plesset perturbation theory (MPn), can be employed to provide more accurate electronic structures by explicitly accounting for electron correlation beyond standard DFT.
+\end{tcolorbox}
+
+\subsection{Software for DFT}
+
+Several software packages implement DFT calculations (see Wikipedia), including:
+\begin{itemize}
+\item \textbf{VASP}: A software for atomic scale materials modelling from first principles.
+\item \textbf{Quantum ESPRESSO}: An integrated suite of Open-Source computer codes for electronic-structure calculations and materials modeling at the nanoscale.
+\item \textbf{ABINIT}: A software suite to calculate the optical, mechanical, vibrational, and other observable properties of materials.
+\item \textbf{Gaussian}: A powerful and versatile software for modeling molecules and chemical problems.
+\item \textbf{ABACUS}: A software package for large-scale electronic structure calculations from first principles.
+\end{itemize}
+
+\section{Implementation}
 
 \subsection{Discretization}
-\[
-r_i = r_0 + i \cdot h, \quad i = 0,1,\dots,N-1
-\]
+
+The radial equation is discretized using a uniform grid:
+
+$$r_i = r_0 + i \cdot h, \quad i = 0, 1, ..., N-1$$
+
+where $r_0$ is the starting point (close to the origin), $h$ is the step size, and $N$ is the number of grid points.
 
 \subsection{Numerov Method}
-\[
-(1 + \frac{h^2}{12} f_{i+1}) y_{i+1} - (2 - \frac{5h^2}{6} f_i) y_i + (1 + \frac{h^2}{12} f_{i-1}) y_{i-1} = 0,
-\]
-where $f_i = 2(E - V(r_i))$.
+
+The Numerov method can be used to solve differential equations of the kind
+
+$$\frac{\partial^2}{\partial x^2}y\left( x \right) + f\left( x \right)y\left( x \right) = F\left( x \right)$$
+
+By using Taylor expansion for $y(x_{i+1})$ and $y(x_{i-1})$ around $x_i$ and combining them, we obtain the \textbf{Numerov formula}:
+
+$$\left( {1 + {{{h^2}} \over {12}}{f_{i + 1}}} \right){y_{i + 1}} - \left( {2 - {{5{h^2}} \over 6}{f_i}} \right){y_i} + \left( {1 + {{{h^2}} \over {12}}{f_{i - 1}}} \right){y_{i - 1}} = {{{h^2}} \over {12}}\left( {{F_{i + 1}} + 10{F_i} + {F_{i - 1}}} \right) + \mathcal{O}(h^6)$$
+
+For the Kohn-Sham equation, we rewrite it in the form:
+
+$$\frac{\partial^2}{\partial r^2} P(r)+\underbrace{2\left(\varepsilon-V^{KS}(r)\right)}_{f(r)} P(r)=\underbrace{0}_{F(r)}.$$
 
 \subsection{Thomas Algorithm}
-The Thomas algorithm efficiently solves the tridiagonal system with $O(N)$ complexity.
 
-\subsection{Self-Consistent Field Method}
+The Thomas algorithm (also known as the tridiagonal matrix algorithm) is used to efficiently solve the tridiagonal system arising from the Numerov method:
+
+\begin{enumerate}
+\item \textbf{Forward elimination} phase creates an upper bidiagonal system
+   $$\alpha_{i+1} = -\frac{B_i}{A_i\alpha_i + C_i}$$
+   $$\beta_{i+1} = \frac{Z_i - A_i\beta_i}{A_i\alpha_i + C_i}$$
+
+\item \textbf{Backward substitution} phase solves for the unknowns
+   $$x_i = \alpha_{i+1}x_{i+1} + \beta_{i+1}$$
+\end{enumerate}
+
+This approach is computationally efficient with $\mathcal{O}(N)$ complexity.
+
+\subsection{Self-Consistent Field}
+
+Self-consistent field (SCF) method is used to solve KS equation numerically. We can start from some initial approximation to the solution. Let us suppose, that the set of $\psi_i^0$ and $\varepsilon_i^0$ is good initial guess to the solution. Using these values we can calculate KS potential and then solve KS equation with known potential. We will get new solution, $\psi_i^1$ and $\varepsilon_i^1$, from which we can recalculate new KS potential, $V^1$. Since using just new calculated potential $V^1$ can lead to divergence of iterations, we can set some mixing parameter $\alpha$ and calculate the potential for next iteration as following
+$$V^{\text{New}}={\alpha}V^1+\left(1-\alpha\right)V^0$$
+where $0<\alpha \le 1$. In other words, we add only some part of the new calculated potential and keep part of the previous potential in order not to change the new solution too much.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{SCFLoop.jpg}
-    \caption{SCF Loop}
+    \includegraphics[width=0.7\textwidth]{./SCFLoop.jpg}
+    \caption{SCF Flowchart}
 \end{figure}
 
-Steps:
+The SCF procedure implements the following steps:
 \begin{enumerate}
-    \item Initialize with an analytical solution
-    \item Calculate density
-    \item Construct $V_{KS}$
-    \item Solve Kohn-Sham equation
-    \item Mix potentials
-    \item Check convergence
+\item Initialize with an analytical solution for a hydrogen-like atom
+\item Calculate the electron density from the wavefunction
+\item Construct the Kohn-Sham potential
+\item Solve the Kohn-Sham equation to obtain a new wavefunction
+\item Mix the old and new potentials to improve convergence stability
+\item Check for energy convergence
+\item Repeat until convergence
 \end{enumerate}
 
 \subsection{Exchange-Correlation Functional}
-We implement the Local Density Approximation (LDA).
 
-Exchange:
-\[
-V^X[\rho] = -\left(\frac{3}{\pi}\rho\right)^{1/3}.
-\]
+We implement the Local Density Approximation (LDA) for the exchange-correlation functional:
 
-Correlation:
-\[
-V^C[\rho] =
-\begin{cases}
-A\ln r_s + \left(B - \tfrac{1}{3}A\right) + \tfrac{2}{3}C r_s \ln r_s + \tfrac{1}{3}(2D-C)r_s, & r_s < 1, \\
-\gamma \frac{1 + \tfrac{7}{6}\beta_1 \sqrt{r_s} + \tfrac{4}{3}\beta_2 r_s}{(1 + \beta_1 \sqrt{r_s} + \beta_2 r_s)^2}, & r_s \ge 1.
-\end{cases}
-\]
-
-where $r_s = \left(\frac{3}{4\pi \rho}\right)^{1/3}$.
-
-\section{Implementation Details}
-
-The \texttt{RadialDFT} class provides:
 \begin{itemize}
-    \item \texttt{initialize()}, \texttt{normalize()}
-    \item \texttt{get\_v\_nuc()}, \texttt{get\_v\_ee()}, \texttt{get\_v\_xc()}
-    \item \texttt{solve\_ks()}, \texttt{scf\_loop()}
+\item The \textbf{correlation potential} uses the Perdew-Zunger parametrization of the Ceperley-Alder quantum Monte Carlo results:
+$${V^C}[\rho] = \left\{ \begin{array}{l}A\ln {r_s} + \left( {B - \frac{1}{3}A} \right) + \frac{2}{3}C{r_s}\ln {r_s} + \frac{1}{3}\left( {2D - C} \right){r_s},\;\;\;\;{\rm{if}}\;{r_s} < 1;\\\gamma \frac{{\left( {1 + \frac{7}{6}{\beta _1}\sqrt {{r_s}}  + \frac{4}{3}{\beta _2}{r_s}} \right)}}{{{{\left( {1 + {\beta _1}\sqrt {{r_s}}  + {\beta _2}{r_s}} \right)}^2}}},\;\;\;\;\;\;\;{\rm{if}}\;\;\;{r_s} \ge 1;\end{array} \right.$$
+  \item For high densities ($r_s < 1$):
+    $${V^C}[\rho] = A\ln {r_s} + \left( {B - \frac{1}{3}A} \right) + \frac{2}{3}C{r_s}\ln {r_s} + \frac{1}{3}\left( {2D - C} \right){r_s}$$
+  \item For low densities ($r_s \geq 1$):
+    $${V^C}[\rho] = \gamma \frac{{\left( {1 + \frac{7}{6}{\beta _1}\sqrt {{r_s}}  + \frac{4}{3}{\beta _2}{r_s}} \right)}}{{{{\left( {1 + {\beta _1}\sqrt {{r_s}}  + {\beta _2}{r_s}} \right)}^2}}}$$
 \end{itemize}
 
-Boundary conditions:
-\[
-P(r \to 0) \propto r^{l+1}, \quad P(r \to \infty) = 0.
-\]
+where ${r_s} = {\left( {\frac{3}{{4\pi \rho }}} \right)^{\frac{1}{3}}}$ is the Wigner-Seitz radius.
 
-Total energy:
-\[
-E_{tot} = E_{ks} + E_{ee} + E_{xc} - \int n(r)V_{xc}(r)dr.
-\]
+\subsection{Validation}
+
+The implementation is validated by comparing the numerical solution with the analytical solution for hydrogen-like atoms. For a hydrogen-like atom with nuclear charge Z, the analytical 1s wavefunction is:
+
+$$P_\text{analytical}(r) = r\Psi_\text{analytical}(r) = \frac{Z^{\frac32}}{\sqrt{\pi}}re^{-Zr}$$
+
+with energy $E = -\frac{Z^2}{2}$ (in atomic units).
+
+Validation checklist (minimal, reproducible tests):
+\begin{itemize}
+\item One‑electron limit: with V\_ee = 0 and V\_xc = 0 the solver with V\_nuc only must reproduce the analytic eigenvalue $\varepsilon = -Z^2/2$ and the analytic radial function $P_{1s}(r)$ after normalization with Norm = sqrt($4\pi \int P^2 dr$). This test confirms correct treatment of P(r), boundary conditions, Numerov integration, and normalization factors.
+\item Norm test: assert $|4\pi \int P^2 dr - 1| <$ tol after normalization.
+\item Energy integral consistency: verify dimensional consistency and relative magnitudes of $E_{ks}$, $E_{ee}$, $E_{xc}$ and that $E_{xc}$ computed from the density integral is consistent (within expected differences) with $-\int \rho V_{xc} d^3r$.
+\item SCF bookkeeping: during SCF use $\Delta\varepsilon = |\varepsilon_{new} - \varepsilon_{old}|$ as convergence metric; compute total energy $E_{tot}$ only after the density has converged.
+\end{itemize}
+
+\begin{tcolorbox}[colback=yellow!10!white,colframe=orange!75!black,title=\textbf{Spherical Integration}]
+When computing energy integrals in spherical coordinates, the transformation from 3D integration requires careful attention to the Jacobian factor. The integral $\int V(\mathbf{r})\rho(\mathbf{r})d\mathbf{r}$ becomes:
+$$\int_0^{2\pi}d\phi\int_0^\pi \sin(\theta)d\theta\int_0^\infty r^2 dr \, V(r,\theta,\phi)\rho(r,\theta,\phi)$$
+For spherically symmetric systems, $V$ and $\rho$ depend only on $r$, and integration over $\theta$ and $\phi$ yields $4\pi$. The crucial point is that the $r^2$ factor from the Jacobian must be included in all radial energy integrals. Omitting this factor leads to incorrect values for $E_{ee}$, $E_{xc}$, and related energy components.
+\end{tcolorbox}
+
+\subsection{Code Details}
+
+\subsubsection{\texttt{RadialDFT} Class}
+
+The \texttt{RadialDFT} class in \texttt{DFT.py} encapsulates the numerical solution of the radial Kohn-Sham equation. Key methods include:
+
+\begin{itemize}
+\item \texttt{initialize()}: Sets up the initial wavefunction guess using the analytical solution
+\item \texttt{normalize()}: Normalizes the wavefunction using the trapezoidal rule
+\item \texttt{get\_v\_nuc()}, \texttt{get\_v\_ee()}, \texttt{get\_v\_xc()}: Calculate the potential components
+\item \texttt{get\_v\_ks()}: Combines the potential components into the Kohn-Sham potential
+\item \texttt{solve\_ks()}: Solves the Kohn-Sham equation using the Numerov method
+\item \texttt{ks\_energy()}, \texttt{e\_xc()}, \texttt{total\_energy()}: Calculate energy components
+\item \texttt{scf\_loop()}: Implements the self-consistent field iteration
+\end{itemize}
+
+\subsubsection{Boundary Conditions}
+
+The radial wavefunction satisfies:
+\begin{itemize}
+\item $P(r \rightarrow 0) \propto r^{l+1}$ (for 1s orbital with $l=0$, so $P(0) = 0$)
+\item $P(r \rightarrow \infty) = 0$
+\end{itemize}
+
+\subsubsection{Energy Calculation}
+
+The total energy is calculated as:
+
+$$E_{tot} = E_{ks} + E_{ee} + E_{xc} - \int n(r)V_{xc}(r)dr$$
+
+where:
+\begin{itemize}
+\item $E_{ks}$ is the Kohn-Sham eigenvalue
+\item $E_{ee}$ is the electron-electron repulsion energy
+\item $E_{xc}$ is the exchange-correlation energy
+\item The last term corrects for double-counting in the Kohn-Sham potential
+\end{itemize}
 
 \section{Usage}
 
-\subsection{Prerequisites}
-Python 3, NumPy, Matplotlib.
-
-\subsection{Running}
-Example setup:
+The parameters for the calculation can be set in \texttt{main.py}:
 \begin{lstlisting}[language=Python]
-Z = 6
-r0 = 1e-5
-rf = 20.0
-N = 10001
-alpha = 0.1
-prec = 1e-5
-max_iter = 500
+Z = 6             # Nuclear charge for hydrogen-like atom
+r0 = 1e-5         # Minimum radius (a.u.)
+rf = 20.0         # Maximum radius (a.u.)
+N = 10001         # Number of grid points
+
+alpha = 0.1       # Mixing parameter for SCF
+prec = 1e-5       # Convergence tolerance
+max_iter = 1000   # Maximum number of SCF iterations
 \end{lstlisting}
 
-Run:
+Then simply execute the calculation:
+
 \begin{lstlisting}[language=bash]
 python main.py
 \end{lstlisting}
 
-\subsection{Output}
+The code generates several output files:
+
 \begin{enumerate}
-    \item \texttt{wavefunction.dat}
-    \item \texttt{potential.dat}
-    \item \texttt{energy.dat}
-    \item \texttt{wavefunction\_comparison.png}
-    \item \texttt{potential\_comparison.png}
+\item \texttt{wavefunction.dat}: Contains the radial wavefunction $P(r)$ at each iteration
+\item \texttt{potential.dat}: Contains the different potential components
+\item \texttt{energy.dat}: Contains the energy components at each iteration
+\item \texttt{wavefunction\_comparison.png}: Plot comparing numerical and analytical wavefunctions
+\item \texttt{potential\_comparison.png}: Plot of the different potential components
 \end{enumerate}
 
-\section{Validation}
+\section{Discussion}
 
-Analytical 1s solution:
-\[
-P_\text{analytical}(r) = r\Psi_{analytical}(r) = \frac{Z^{3/2}}{\sqrt{\pi}}re^{-Zr}, \quad E = -\frac{Z^2}{2}.
-\]
+\subsection{Optimization of DFT Parameters}
 
-\section{Results and Discussion}
+The accuracy and stability of the SCF procedure in DFT also depend on the choice of numerical integration parameters and the potential mixing strategy. In this section, we systematically discuss the optimization of these parameters and supported by our numerical tests.
 
-\subsection{Convergence}
-Mixing parameter $\alpha$ controls convergence stability.
+\subsubsection{Optimization of Integration Parameters}
 
-\subsection{Energy Components}
-Final energy breakdown:
-\begin{itemize}
-    \item Kohn-Sham eigenvalue
-    \item Electron-electron repulsion
-    \item Exchange-correlation
-\end{itemize}
+In radial DFT calculations, the total energy and eigenvalues are obtained through numerical integration over a finite radial domain $[0, r_f]$ with $N$ uniformly spaced grid points. In principle, increasing both $r_f$ and $N$ improves accuracy, as the tail of the wave function decays exponentially and should be captured sufficiently before truncation. However, excessively large values may lead to numerical overflow, instability, or prohibitively high computational cost.
 
-\section{Theoretical Extensions}
-Possible improvements:
+According to the analytical hydrogenic wave function, the amplitude at $r=10$ already decreases to approximately $10^{-25}$, suggesting that the region $r_f \in [5, 20]$ is sufficient to capture the physically relevant density. Therefore, the integration range and grid density were systematically varied within this window to identify the minimal parameters yielding a converged eigenvalue $\varepsilon$.
+
+A grid search was performed for optimization of integration parameters: for each $r_f$, $N$ was gradually increased until either \textbf{numerical instability} occurred or \textbf{unphysical results} appeared. This approach avoids \textbf{program crashes} associated with overly dense grids while ensuring convergence monitoring for each configuration.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{data/int_para_convergence.png}
+    \caption{Integration Parameter Optimization}
+\end{figure}
+
+The results indicate that convergence is achieved around $r_f = 17$, $N = 4000$. Beyond these values, further increase in grid resolution brings negligible improvement $<10^{-5}$ Ha in eigenvalues but substantially increases computation time. Hence, $r_f = 17$ and $N = 4000$ are recommended as optimal parameters balancing accuracy and efficiency.
+
+\subsubsection{Mixing Parameter for SCF Convergence}
+
+With the optimized integration parameters, the next step was to investigate the convergence behavior of the SCF loop as a function of the potential mixing parameter $\alpha$. This parameter controls the update of the Kohn–Sham potential:
+$$V_\text{new} = (1-\alpha)V_\text{old} + \alpha V_\text{out}.$$
+A small $\alpha$ slows convergence but enhances stability, while a large $\alpha$ accelerates convergence but risks divergence.
+
+A systematic scan of $\alpha$ values from 0.02 to 1.0 was performed to identify the optimal choice. For $\alpha \le 0.4$, convergence was smooth and monotonic, though requiring more iterations at smaller $\alpha$. Remarkably, with the optimized integration parameters, the SCF cycle converged even at $\alpha = 1$, indicating excellent numerical stability of the potential update. However, this is not generally guaranteed for arbitrary systems, and thus $\alpha \in [0.4, 0.6]$ is recommended as a balanced choice between convergence speed and robustness.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{data/alpha_convergence.png}
+    \caption{Mixing Parameter Optimization}
+\end{figure}
+
+\subsection{Known Numerical Issues}
+
+Despite the overall correctness of the implemented algorithm and its agreement with analytical results under moderate grid conditions, numerical instability occurs during the tests at high grid densities.
+
+During the SCF iterations, as $N$ increases, $P(r)$ at the outermost grid points decreases exponentially to zero. Consequently, the density $\rho=P(r)/r$ approaches zero. This extreme results in overflow errors that propagate through the density evaluation, ultimately producing "NaN" values in the potential and eigenvalue. Once NaN values appear, the iterative process fails to proceed, and the calculation terminates prematurely.
+
+Detailed inspection confirmed that all calculations are performed in double precision (float64), suggesting that the issue is not due to insufficient floating-point resolution but rather to the accumulation of numerical round-off errors in extreme-value regions. Interestingly, this instability becomes more pronounced as the grid resolution increases—contrary to expectation—while coarser grids (smaller $N$) exhibit stable behavior and yield physically reasonable results.
+
+It is noteworthy that the same algorithm implemented in Fortran does not exhibit these divergences. In the Fortran version, the eigenvalues converge smoothly without sudden jumps, even for very large $r_f$ and $N$. This difference indicates that the issue may stem from Python's internal floating-point handling or intermediate variable casting during NumPy array operations.
+
+To further investigate, a \textbf{Just-In-Time (JIT)} compiled version of the code was tested (using \texttt{Numba}). The JIT implementation significantly improved the execution speed but did not eliminate the NaN problem, implying that the instability is intrinsic to the numerical formulation rather than to the interpreter overhead.
+
+In practice, the divergence can be mitigated by reducing the grid density. Another possible solution is to reformulate the density evaluation using \textbf{logarithmic grids} or \textbf{asymptotic expansions} for large $(r)$, which are known to improve numerical stability in atomic DFT codes.
+
+\subsection{Theoretical Extensions}
+
+This implementation can be extended in several ways:
+
 \begin{enumerate}
-    \item Multi-electron systems
-    \item GGA/hybrid XC
-    \item Excited states
-    \item Non-spherical systems
-    \item Relativistic effects
+\item \textbf{Multi-electron systems}: Implementing multiple Kohn-Sham orbitals and handling orbital occupations
+\item \textbf{Alternative XC functionals}: Implementing GGA (Generalized Gradient Approximation) or hybrid functionals
+\item \textbf{Non-spherical systems}: Extending beyond radial symmetry
 \end{enumerate}
-
-\section{Mathematical Appendix}
-
-Radial Schrödinger equation:
-\[
-\left[-\frac{1}{2r}\frac{d^2}{dr^2}r + \frac{l(l+1)}{2r^2} + V_\text{nuc}(r)\right]\Psi_{nl}(r) = E_{nl}\Psi_{nl}(r).
-\]
-
-Numerov recurrence:
-\[
-\frac{d^2}{d x^2} y(x)+\underbrace{2\left(\varepsilon-V^{K S}(x)\right)}_{f(x)} y(x)=\underbrace{0}_{F(x)}.
-\]
-
-Thomas algorithm:
-\[
-\alpha_{i+1} = -\frac{B_i}{A_i\alpha_i + C_i}, \quad
-\beta_{i+1} = \frac{Z_i - A_i\beta_i}{A_i\alpha_i + C_i}.
-\]
 
 \section{References}
+
 \begin{enumerate}
-    \item Pauling, L.; Wilson, E.B. \textit{Introduction to Quantum Mechanics}, McGraw-Hill, 1935.
-    \item Hartree, D.R. \textit{The calculation of atomic structures}. Chapman \& Hall, 1957.
-    \item Parr, R.G.; Yang, W. \textit{Density functional theory of atoms and molecules}. Oxford University Press, 1989.
-    \item Perdew, J.P.; Zunger, A. Phys. Rev. B 23, 5048 (1981).
-    \item Salvadori, M.G. \textit{Numerical methods in engineering}. 1952.
+\item Pauling, L.; Wilson, E.B. Introduction to Quantum Mechanics, McGraw-Hill, New York, 1935.
+\item Hartree, D.R. The calculation of atomic structures. Chapman \& Hall, Ltd., London, 1957.
+\item Parr, R.G.; Yang, W. Density functional theory of atoms and molecules. Oxford University Press, New York, 1989.
+\item Perdew, J.P.; Zunger, A. Self-interaction correction to density-functional approximations for many-electron systems. Phys. Rev. B 23, 5048, 1981.
+\item Salvadori, M.G. Numerical methods in engineering. New York, 1952.
+\item Malyshkina MV, Novikov AS. Modern Software for Computer Modeling in Quantum Chemistry and Molecular Dynamics. \textit{Compounds}. 2021; 1(3):134-144.
 \end{enumerate}
 
 \end{document}
+
