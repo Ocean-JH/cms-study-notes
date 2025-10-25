@@ -220,6 +220,8 @@ Self-consistent field (SCF) method is used to solve KS equation numerically. We 
 $$V^{\text{New}}={\alpha}V^1+\left(1-\alpha\right)V^0$$
 where $0<\alpha \le 1$. In other words, we add only some part of the new calculated potential and keep part of the previous potential in order not to change the new solution too much.
 
+![SCF Flowchart](./SCFLoop.jpg)
+
 The SCF procedure implements the following steps:
 1. Initialize with an analytical solution for a hydrogen-like atom
 2. Calculate the electron density from the wavefunction
@@ -328,6 +330,8 @@ According to the analytical hydrogenic wave function, the amplitude at $r=10$ al
 
 A grid search was performed for optimization of integration parameters: for each $r_f$, $N$ was gradually increased until either **numerical instability** occurred or **unphysical results** appeared. This approach avoids **program crashes** associated with overly dense grids while ensuring convergence monitoring for each configuration.
 
+![Integration Parameter Optimization](data/int_para_convergence.png)
+
 The results indicate that convergence is achieved around $r_f = 17$, $N = 4000$. Beyond these values, further increase in grid resolution brings negligible improvement $<10^{-5} Ha$ in eigenvalues but substantially increases computation time. Hence, $r_f = 17$ and $N = 4000$ are recommended as optimal parameters balancing accuracy and efficiency.
 
 ### 4.1.2 Mixing Parameter for SCF Convergence
@@ -336,6 +340,8 @@ $$V_\text{new} = (1-\alpha)V_\text{old} + \alpha V_\text{out}.$$
 A small $\alpha$ slows convergence but enhances stability, while a large $\alpha$ accelerates convergence but risks divergence.
 
 A systematic scan of $\alpha$ values from 0.02 to 1.0 was performed to identify the optimal choice. For $\alpha \le 0.4$, convergence was smooth and monotonic, though requiring more iterations at smaller $\alpha$. Remarkably, with the optimized integration parameters, the SCF cycle converged even at $\alpha = 1$, indicating excellent numerical stability of the potential update. However, this is not generally guaranteed for arbitrary systems, and thus $\alpha \in [0.4, 0.6]$ is recommended as a balanced choice between convergence speed and robustness.
+
+![Mixing Parameter Optimization](data/alpha_convergence.png)
 
 ## 4.2 Known Numerical Issues
 Despite the overall correctness of the implemented algorithm and its agreement with analytical results under moderate grid conditions, numerical instability occurs during the tests at high grid densities.
