@@ -150,14 +150,14 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True, verbose=True, save
 
 if __name__ == "__main__":
     # Parameters
-    Z = 6  # Nuclear charge for Hydrogen-like atom
-    r0 = 1e-5  # Minimum radius
-    rf = 20.0  # Maximum radius
-    N = 8000  # Number of mesh points
+    Z = 6               # Nuclear charge for Hydrogen-like atom
+    r0 = 1e-5           # Minimum radius
+    rf = 20.0           # Maximum radius
+    N = 8000            # Number of mesh points
 
-    alpha = 0.1  # Mixing parameter for SCF
-    prec = 1e-5  # Convergence tolerance
-    max_iter = 300  # Maximum number of SCF iterations
+    alpha = 0.1         # Mixing parameter for SCF
+    prec = 1e-5         # Convergence tolerance
+    max_iter = 300      # Maximum number of SCF iterations
 
     eps, iters = main(Z, r0, rf, N, alpha, prec, max_iter)
     print(f"Final Kohn-Sham energy: {eps:.6f} a.u. after {iters} iterations.")
