@@ -112,7 +112,7 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True, verbose=True, save
     logger.info("Writing wavefunctions and potentials...")
 
     if save:
-        with open("wavefunction.dat", "w") as f:
+        with open("data/wavefunction.dat", "w") as f:
             f.write(f"#  Wavefunction Data\n")
             f.write(f"Total Iterations: {len(P_history)}\n\n")
             for i in range(1, len(P_history)+1):
@@ -126,7 +126,7 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True, verbose=True, save
             for j in range(N):
                 f.write(f"{r[j]:<20.15f}\t{P_history[-1][j]:<20.15f}\t{P_analytical[j]:<20.15f}\t{(P_analytical[j] - P_history[-1][j]):<20.12e}\n")
 
-        with open("potential.dat", "w") as f:
+        with open("data/potential.dat", "w") as f:
             f.write(f"#  Potential Data\n")
             f.write(f"Total Iterations: {len(V_KS)}\n\n")
             for i in range(1, len(V_KS)+1):
@@ -140,7 +140,7 @@ def main(Z, r0, rf, N, alpha, prec, max_iter, visualize=True, verbose=True, save
             for j in range(N):
                 f.write(f"{r[j]:<20.15f}\t{V_nuc[i-1][j]:<20.15f}\t{V_ee[-1][j]:<20.15f}\t{V_xc[-1][j]:<20.15f}\t{V_KS[-1][j]:<20.15f}\n")
 
-        with open("energy.dat", "w") as f:
+        with open("data/energy.dat", "w") as f:
             f.write(f"#\tIteration\tTotE\tE_KS\tE_ee\tE_xc\tE_xc1\tdE\n")
             for i in range(len(E_tot_history)):
                 f.write(f"\t{i}\t{E_tot_history[i]:<20.15f}\t{E_ks_history[i]:<20.15f}\t{E_ee_history[i]:<20.15f}\t{E_xc_history[i]:<20.15f}\t{E_xc1_history[i]:<20.15f}\t{dE_history[i] if dE_history[i] is not None else 0.0:<20.12e}\n")

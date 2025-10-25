@@ -4,7 +4,7 @@
 Author: Wang Jianghai @NTU
 Contact: jianghai001@e.ntu.edu.sg
 Date: 2025-10-08
-Description: [Brief description of the script's purpose]
+Description: Optimize integration parameters and mixing parameter for SCF convergence.
 """
 import numpy as np
 import pandas as pd
@@ -56,7 +56,7 @@ def opt_integration_parameters(Z, r0, alpha=0.1, prec=1e-5, max_iter=500):
     df = pd.DataFrame(results, columns=["rf", "n", "eigval", "iterations", "status"])
 
     md_table = df.to_markdown(index=False, tablefmt="github", floatfmt=".6f")
-    with open("int_para_sweep.md", "w") as f:
+    with open("data/int_para_sweep.md", "w") as f:
         f.write(md_table)
 
     df.loc[df["status"] != "Converged", ["eigval", "iterations"]] = np.nan
@@ -74,7 +74,7 @@ def opt_integration_parameters(Z, r0, alpha=0.1, prec=1e-5, max_iter=500):
     plt.grid(True)
 
     plt.tight_layout()
-    plt.savefig("int_para_convergence.png", dpi=300)
+    plt.savefig("data/int_para_convergence.png", dpi=300)
     # plt.show()
 
 def opt_alpha(Z, r0, rf, N, prec=1e-5, max_iter=500):
@@ -99,7 +99,7 @@ def opt_alpha(Z, r0, rf, N, prec=1e-5, max_iter=500):
     df = pd.DataFrame(results, columns=["alpha", "eigval", "iterations", "status"])
 
     md_table = df.to_markdown(index=False, tablefmt="github", floatfmt=".6f")
-    with open("alpha_sweep.md", "w") as f:
+    with open("data/alpha_sweep.md", "w") as f:
         f.write(md_table)
 
     df.loc[df["status"] != "Converged", ["eigval", "iterations"]] = np.nan
@@ -122,7 +122,7 @@ def opt_alpha(Z, r0, rf, N, prec=1e-5, max_iter=500):
     plt.grid(True)
 
     plt.tight_layout()
-    plt.savefig("alpha_convergence.png", dpi=300)
+    plt.savefig("data/alpha_convergence.png", dpi=300)
     plt.show()
 
 
