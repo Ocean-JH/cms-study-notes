@@ -3,7 +3,7 @@
 ## 1. Density Functional Theory
 This project implements a radial Kohn–Sham (KS) self-consistent field (SCF) solver for spherically symmetric (H-like) systems, focusing on the 1s orbital.
 
-See details [here](./density-functional-theory/Readme.md) or [PDF](./density-functional-theory/Radial Kohn-Sham Equation Solver for Hydrogen-like Atoms.pdf).
+See details [here](./density-functional-theory/Readme.md) or [PDF](density-functional-theory/Radial-Kohn-Sham-Equation-Solver-for-Hydrogen-like-Atoms.pdf).
 
 > The whole implementation is based on the interactive course from [Delta Science Institute](https://www.dsedu.org/).
 > 
