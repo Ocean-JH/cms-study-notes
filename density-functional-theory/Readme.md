@@ -361,7 +361,7 @@ This implementation can be extended in several ways:
 
 1. **Multi-electron systems**: Implementing multiple Kohn-Sham orbitals and handling orbital occupations
 2. **Alternative XC functionals**: Implementing GGA (Generalized Gradient Approximation) or hybrid functionals
-3**Non-spherical systems**: Extending beyond radial symmetry
+3. **Non-spherical systems**: Extending beyond radial symmetry
 
 # 5. References
 1. Pauling, L.; Wilson, E.B. Introduction to Quantum Mechanics, McGraw-Hill, New York, 1935.
