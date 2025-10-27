@@ -3,11 +3,11 @@
 ## 1. Density Functional Theory
 This project implements a radial Kohn–Sham (KS) self-consistent field (SCF) solver for spherically symmetric (H-like) systems, focusing on the 1s orbital.
 
-See details [here](./density-functional-theory/Readme.md) or [PDF](density-functional-theory/Radial-Kohn-Sham-Equation-Solver-for-Hydrogen-like-Atoms.pdf).
+See notes in [Markdown](./density-functional-theory/Readme.md) or [PDF](density-functional-theory/Radial-Kohn-Sham-Equation-Solver-for-Hydrogen-like-Atoms.pdf).
 
-> The whole implementation is based on the interactive course from [Delta Science Institute](https://www.dsedu.org/).
+> 🪶 The whole implementation is based on the interactive course from [Delta Science Institute](https://www.dsedu.org/).
 > 
-> The goal is *to calculate the lowest eigenvalue and eigenfunction of an isolated $C^{5+}$ ion in the local density approximation (LDA) with using Ceperley-Alder exchange-correlation functional in the Perdew-Zunger parametrization. Compare numerical DFT solution with analytical solution from Schrödinger equation for isolated $C^{5+}$ ion.*
+> The goal is ***to calculate the lowest eigenvalue and eigenfunction of an isolated C<sup>5+</sup> ion in the local density approximation (LDA) with using Ceperley-Alder exchange-correlation functional in the Perdew-Zunger parametrization. Compare numerical DFT solution with analytical solution from Schrödinger equation for isolated C<sup>5+</sup> ion***.
 
 ### Direct integration of the radial Kohn-Sham equation
 
