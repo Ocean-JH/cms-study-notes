@@ -234,6 +234,9 @@ The SCF procedure implements the following steps:
 ## 2.5 Exchange-Correlation Functional
 We implement the Local Density Approximation (LDA) for the exchange-correlation functional:
 
+- The **exchange potential** has the form:
+$${V^X}[\rho] =  - \left( {\frac{3}{\pi }}\rho \right)^{\frac{1}{3}}$$
+
 - The **correlation potential** uses the Perdew-Zunger parametrization of the Ceperley-Alder quantum Monte Carlo results:
 $${V^C}[\rho] = \left\{ \begin{array}{l}A\ln {r_s} + \left( {B - \frac{1}{3}A} \right) + \frac{2}{3}C{r_s}\ln {r_s} + \frac{1}{3}\left( {2D - C} \right){r_s},\;\;\;\;{\rm{if}}\;{r_s} < 1;\\\gamma \frac{{\left( {1 + \frac{7}{6}{\beta _1}\sqrt {{r_s}}  + \frac{4}{3}{\beta _2}{r_s}} \right)}}{{{{\left( {1 + {\beta _1}\sqrt {{r_s}}  + {\beta _2}{r_s}} \right)}^2}}},\;\;\;\;\;\;\;{\rm{if}}\;\;\;{r_s} \ge 1;\end{array} \right.$$
   - For high densities ($r_s < 1$):
@@ -241,7 +244,10 @@ $${V^C}[\rho] = \left\{ \begin{array}{l}A\ln {r_s} + \left( {B - \frac{1}{3}A} \
   - For low densities ($r_s \geq 1$):
     $${V^C}[\rho] = \gamma \frac{{\left( {1 + \frac{7}{6}{\beta _1}\sqrt {{r_s}}  + \frac{4}{3}{\beta _2}{r_s}} \right)}}{{{{\left( {1 + {\beta _1}\sqrt {{r_s}}  + {\beta _2}{r_s}} \right)}^2}}}$$
 
-where ${r_s} = {\left( {\frac{3}{{4\pi \rho }}} \right)^{\frac{1}{3}}}$ is the Wigner-Seitz radius.
+where ${r_s} = {\left( {\frac{3}{{4\pi \rho }}} \right)^{\frac{1}{3}}}$ is the Wigner-Seitz radius, $A=0.0311$, $B=-0.048$, $C=0.002$, $D=-0.0116$, $\beta_1=1.0529$, $\beta_2=0.3334$, $\gamma=-0.1423$.
+
+The total exchange-correlation potential is then:
+$$V_{xc}[\rho] = V^X[\rho] + V^C[\rho]$$
 
 ## 2.6 Validation
 
