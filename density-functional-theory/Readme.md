@@ -21,11 +21,11 @@
   - [1.6 Software for DFT](#16-software-for-dft)
 - [2. Implementation](#2-implementation)
   - [2.1 Discretization](#21-discretization)
-  - [2.2 Numerov Method](#22-numerov-method)
-  - [2.3 Thomas Algorithm](#23-thomas-algorithm)
-  - [2.4 Self-Consistent Field](#24-self-consistent-field)
-  - [2.5 Exchange-Correlation Functional](#25-exchange-correlation-functional)
-  - [2.6 Validation](#26-validation)
+  - [2.2 Analytical Solution](#22-analytical-solution)
+  - [2.3 Numerov Method](#23-numerov-method)
+  - [2.4 Thomas Algorithm](#24-thomas-algorithm)
+  - [2.5 Self-Consistent Field](#25-self-consistent-field)
+  - [2.6 Exchange-Correlation Functional](#26-exchange-correlation-functional)
   - [2.7 Code Details](#27-code-details)
 - [3. Usage](#3-usage)
 - [4. Discussion](#4-discussion)
@@ -186,36 +186,105 @@ The radial equation is discretized using a uniform grid:
 
 $$r_i = r_0 + i \cdot h, \quad i = 0, 1, ..., N-1$$
 
-where $r_0$ is the starting point (close to the origin), $h$ is the step size, and $N$ is the number of grid points.
+where $r_0$ is the starting point (close to the origin to avoid singularities), $h$ is the step size, and $N$ is the number of grid points.
 
-## 2.2 Numerov Method
+## 2.2 Analytical Solution
+
+The implementation is based on the hydrogen-like atom model, which has an exact analytical solution for the 1s orbital. This allows us to validate the numerical results against known solutions.
+
+For a hydrogen-like atom with nuclear charge Z, the analytical 1s wavefunction is:
+
+$$P_\text{analytical}(r) = r\Psi_\text{analytical}(r) = \frac{Z^{\frac32}}{\sqrt{\pi}}re^{-Zr}$$
+
+with energy $E = -\frac{Z^2}{2}$ (in atomic units).
+
+## 2.3 Numerov Method
 
 The Numerov method can be used to solve differential equations of the kind
 
 $${{{\partial^2}} \over {\partial{x^2}}}y\left( x \right) + f\left( x \right)y\left( x \right) = F\left( x \right)$$
 
-By using Taylor expansion for $y(x_{i+1})$ and $y(x_{i-1})$ around $x_i$ and combining them, we obtain the **Numerov formula**:
+on the segment $[a,b]$ with boundary conditions of different kind, for example
+
+$$\eqalign{   & y\left( a \right) = {y_a}  \cr   & y\left( b \right) = {y_b} \cr}.$$
+
+The segment $[a,b]$ can be divided evenly by $N$ points $x_i$ with step $h = \frac{{b - a}}{{N - 1}}$.
+
+By using Taylor expansion for $y(x_{i+1})$ and $y(x_{i-1})$ around $x_i$ and summing them, we get
+
+$$y_{i+1} - 2y_i + y_{i-1} = h^2 y_i^{''} + \frac{h^4}{12} y_i^{''''} + {\cal{O}}(h^6).$$
+
+To calculate $y^{''''}\left(x_i\right) = \left(y^{''}\left(x_i\right)\right)^{''}=\left(F\left(x_i\right)-f\left(x_i\right)y\left(x_i\right) \right)^{''}$, we can use finite differences for second derivative $h^{2} y^{''}\left(x_i\right) = y_{i + 1} - 2y_i + y_{i - 1}$. We get
+
+$$h^2 y_i^{''''} = F_{i+1} - 2F_{i} + F_{i-1} - f_{i+1}y_{i+1} +  2f_{i}y_{i} - f_{i-1}y_{i-1} + {\cal O}(h^4).$$
+
+Combining the two formulas above, we obtain the final **Numerov formula**:
 
 $$\left( {1 + {{{h^2}} \over {12}}{f_{i + 1}}} \right){y_{i + 1}} - \left( {2 - {{5{h^2}} \over 6}{f_i}} \right){y_i} + \left( {1 + {{{h^2}} \over {12}}{f_{i - 1}}} \right){y_{i - 1}} = {{{h^2}} \over {12}}\left( {{F_{i + 1}} + 10{F_i} + {F_{i - 1}}} \right) + {\cal O}(h^6)$$
+
+for $i = 2,...,N-1$.
+
+The set of equations for $i = 2,...,N-1$ together with boundary conditions form a tridiagonal system of linear equations, which can be represented in a matrix equation form as:
+
+$${\bf{AY}} = {\bf{Z}},$$
+
+where matrix $\bf{A}$ is tridiagonal with elements
+
+$${\bf{A}} = \left( {\matrix{    {{C_1}} & {{B_1}} & 0 & 0 & {...} & 0  \cr    {{A_2}} & {{C_2}} & {{B_2}} & 0 & {...} & 0  \cr    0 & {{A_3}} & {{C_3}} & {{B_3}} & {...} & 0  \cr    {...} & {...} & {...} & {...} & {...} & {{B_{N - 1}}}  \cr    0 & 0 & 0 & 0 & {{A_N}} & {{C_N}}  \cr   } } \right).$$
+
+The elements of matrix $\bf{Y}$ and vector $\bf{Z}$ are given by
+
+$${\bf{Y}} = \left( \matrix{   {y_1} \hfill \cr   {y_2} \hfill \cr   ... \hfill \cr   {y_N} \hfill \cr}  \right),$$
+
+$${\bf{Z}} = \left( \matrix{   {Z_1} \hfill \cr   {Z_2} \hfill \cr   ... \hfill \cr   {Z_N} \hfill \cr}  \right).$$
+
+Here, the elements of matrix $\bf{A}$ and vector $\bf{Z}$ are defined as follows:
+
+$$A_i = B_i = \left(1 + {h^2\over{12}}f_i\right), C_i = -\left(2-{5h^2\over{6}}f_i\right),$$
+
+$$Z_i = {h^2\over{12}} \left( F_{i+1} + 10F_i + F_{i-1} \right).$$
 
 For the Kohn-Sham equation, we rewrite it in the form:
 
 $$\frac{\partial^2}{\partial r^2} P(r)+\underbrace{2\left(\varepsilon-V^{KS}(r)\right)}_{f(r)} P(r)=\underbrace{0}_{F(r)}.$$
 
-## 2.3 Thomas Algorithm
+Thus, we have $F_i=0$ and $f_i=2\left(\varepsilon-V^{KS}(r_i)\right)$. The Numerov formula becomes:
+
+$$\left( {1 + {{{h^2}} \over {12}}{f_{i + 1}}} \right){P_{i + 1}} - \left( {2 - {{5{h^2}} \over 6}{f_i}} \right){P_i} + \left( {1 + {{{h^2}} \over {12}}{f_{i - 1}}} \right){P_{i - 1}} = 0.$$
+
+The boundary conditions in interval $[r_0,r_f]$ are
+
+$$\eqalign{   &  P\left( r_0 \right)  = P_{10}^0\left( r_0 \right)  \cr    &  P\left( r_f \right)  = P_{10}^0\left( r_f \right) \cr},$$
+
+where $P_{10}^0(r)$ is the [analytical solution](#22-analytical-solution).
+
+## 2.4 Thomas Algorithm
 
 The Thomas algorithm (also known as the tridiagonal matrix algorithm) is used to efficiently solve the tridiagonal system arising from the Numerov method:
+
+$${\bf{AY}} = {\bf{Z}}.$$
+
+We can look for the solution in the form
+
+$${y_i} = {\alpha _{i + 1}}{y_{i + 1}} + {\beta _{i + 1}}.$$
+
+At first, we can calculate $\alpha_2$ and $\beta_2$ from the boundary condition at $i=r_0$:
+
+$$\eqalign{   & \alpha_2 = 0  \cr    & \beta_2 =   P_{10}^0\left( r_0 \right)\cr}.$$
+
+Then the Thomas algorithm consists of two main phases:
 
 1. **Forward elimination** phase creates an upper bidiagonal system
    $$\alpha_{i+1} = -\frac{B_i}{A_i\alpha_i + C_i}$$
    $$\beta_{i+1} = \frac{Z_i - A_i\beta_i}{A_i\alpha_i + C_i}$$
 
 2. **Backward substitution** phase solves for the unknowns
-   $$x_i = \alpha_{i+1}x_{i+1} + \beta_{i+1}$$
+   $${P_i} = {\alpha _{i + 1}}{P_{i + 1}} + {\beta _{i + 1}}$$
 
 This approach is computationally efficient with ${\cal O}(N)$ complexity.
 
-## 2.4 Self-Consistent Field
+## 2.5 Self-Consistent Field
+
 Self-consistent field (SCF) method is used to solve KS equation numerically. We can start from some initial approximation to the solution. Let us suppose, that the set of $\psi_i^0$ and $\varepsilon_i^0$ is good initial guess to the solution. Using these values we can calculate KS potential and then solve KS equation with known potential. We will get new solution, $\psi_i^1$ and $\varepsilon_i^1$, from which  we can recalculate new KS potential, $V^1$. Since using just new calculated potential $V^1$ can lead to divergence of iterations, we can set some mixing parameter $\alpha$ and calculate the potential for next iteration as following
 $$V^{\text{New}}={\alpha}V^1+\left(1-\alpha\right)V^0$$
 where $0<\alpha \le 1$. In other words, we add only some part of the new calculated potential and keep part of the previous potential in order not to change the new solution too much.
@@ -231,7 +300,7 @@ The SCF procedure implements the following steps:
 6. Check for energy convergence
 7. Repeat until convergence
 
-## 2.5 Exchange-Correlation Functional
+## 2.6 Exchange-Correlation Functional
 We implement the Local Density Approximation (LDA) for the exchange-correlation functional:
 
 - The **exchange potential** has the form:
@@ -248,21 +317,6 @@ where ${r_s} = {\left( {\frac{3}{{4\pi \rho }}} \right)^{\frac{1}{3}}}$ is the W
 
 The total exchange-correlation potential is then:
 $$V_{xc}[\rho] = V^X[\rho] + V^C[\rho]$$
-
-## 2.6 Validation
-
-The implementation is validated by comparing the numerical solution with the analytical solution for hydrogen-like atoms. For a hydrogen-like atom with nuclear charge Z, the analytical 1s wavefunction is:
-
-$$P_\text{analytical}(r) = r\Psi_\text{analytical}(r) = \frac{Z^{\frac32}}{\sqrt{\pi}}re^{-Zr}$$
-
-with energy $E = -\frac{Z^2}{2}$ (in atomic units).
-
-Validation checklist (minimal, reproducible tests):
-- One‑electron limit: with V_ee = 0 and V_xc = 0 the solver with V_nuc only must reproduce the analytic eigenvalue ε = −Z^2/2 and the analytic radial function P_1s(r) after normalization with Norm = sqrt(4π ∫ P^2 dr). This test confirms correct treatment of P(r), boundary conditions, Numerov integration, and normalization factors.
-- Norm test: assert |4π ∫ P^2 dr − 1| < tol after normalization.
-- Energy integral consistency: verify dimensional consistency and relative magnitudes of E_ks, E_ee, E_xc and that E_xc computed from the density integral is consistent (within expected differences) with −∫ ρ V_xc d^3r.
-- SCF bookkeeping: during SCF use Δε = |ε_new − ε_old| as convergence metric; compute total energy E_tot only after the density has converged.
-
 
 ## 2.7 Code Details
 

@@ -247,7 +247,7 @@ The implementation is validated by comparing the numerical solution with the ana
 $$P_\text{analytical}(r) = r\Psi_\text{analytical}(r) = \frac{Z^{\frac32}}{\sqrt{\pi}}re^{-Zr}$$
 with energy $E = -\frac{Z^2}{2}$ (in atomic units).
 
-Validation checklist (minimal, reproducible tests):
+Validation checklist:
 \begin{itemize}
 \item One‑electron limit: with V\_ee = 0 and V\_xc = 0 the solver with V\_nuc only must reproduce the analytic eigenvalue $\varepsilon = -Z^2/2$ and the analytic radial function $P_{1s}(r)$ after normalization with Norm = sqrt($4\pi \int P^2 dr$). This test confirms correct treatment of P(r), boundary conditions, Numerov integration, and normalization factors.
 \item Norm test: assert $|4\pi \int P^2 dr - 1| <$ tol after normalization.
