@@ -29,43 +29,65 @@ def plot(dft: RadialDFT, wavefunc=True, potential=True, savefig=True):
     """
     r = dft.r
     if wavefunc:
-        plt.figure(figsize=(12, 5))
-        plt.plot(r, dft.P, label='Numerical P(r)', color='blue', lw=2)
-        plt.plot(r, dft.P_analytical, label='Analytical P(r)', color='orange', linestyle='--', lw=2)
-        plt.xlabel('r (a.u.)')
-        plt.ylabel('Radial Wavefunction P(r)')
-        plt.xlim([0, 0.25])
+        fig, ax1 = plt.subplots(figsize=(12, 5))
+        ax1.plot(r, dft.P, label='Numerical P(r)', color='blue', lw=2)
+        ax1.plot(r, dft.P_analytical, label='Analytical P(r)', color='orange', linestyle='--', lw=2)
+        ax1.set_xlabel('r (a.u.)')
+        ax1.set_ylabel('Radial Wavefunction P(r)', color='black')
+        ax1.set_xlim(0.0, 2.0)
+        ax1.set_ylim(0.0, np.max(dft.P) * 1.05)
+        ax1.grid(True, linestyle='--', alpha=0.5)
+
+        diff = dft.P - dft.P_analytical
+        ax2 = ax1.twinx()
+        ax2.fill_between(r, diff, 0, color='gray', alpha=0.3, label='Difference (Numerical - Analytical)')
+        ax2.set_ylabel('Difference ΔP(r)', color='gray')
+        ax2.tick_params(axis='y', labelcolor='gray')
+        # ax2.set_ylim(-0.0005, np.max(diff) * 1.05)
+
+        lines_1, labels_1 = ax1.get_legend_handles_labels()
+        lines_2, labels_2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right')
 
         plt.title('Radial Wavefunction Comparison')
-        plt.legend()
-        plt.grid()
-        plt.xlim(0, 0.25)
-
         plt.tight_layout()
 
         if savefig:
-            plt.savefig("wavefunction.png", dpi=300)
+            plt.savefig("data/wavefunction.png", dpi=300)
+            plt.close(fig)
         else:
             plt.show()
 
     if potential:
-        plt.figure(figsize=(12, 5))
-        plt.plot(r, dft.v_nuc, label='V_nuc(r)', color='black', lw=2)
-        plt.plot(r, dft.v_ee, label='V_ee(r)', color='green', lw=2)
-        plt.plot(r, dft.v_xc, label='V_xc(r)', color='purple', lw=2)
-        plt.plot(r, dft.v_ks, label='V_KS(r)', color='red', lw=2)
-        plt.xlabel('r (a.u.)')
-        plt.ylabel('Potential (a.u.)')
-        plt.title('Radial Potentials')
-        plt.legend()
-        plt.grid()
-        plt.xlim(0, 0.15)
-        plt.ylim(-300, 50)
+        fig, ax1 = plt.subplots(figsize=(12, 5))
+        ax1.plot(r, dft.v_nuc, label='V_nuc(r)', color='black', lw=1)
+        ax1.plot(r, dft.v_ee, label='V_ee(r)', color='green', lw=1)
+        ax1.plot(r, dft.v_xc, label='V_xc(r)', color='purple', lw=1)
+        ax1.plot(r, dft.v_ks, label='V_KS(r)', color='red', lw=1)
 
+        ax1.set_xlabel('r (a.u.)')
+        ax1.set_ylabel('Potential (a.u.)', color='black')
+        ax1.set_xlim(0, 2.0)
+        ax1.set_ylim(-20, 10)
+        ax1.grid(True, linestyle='--', alpha=0.5)
+
+        v_sc = dft.v_ee + dft.v_xc
+        ax2 = ax1.twinx()
+        ax2.fill_between(r, v_sc, 0, color='gray', alpha=0.25, label='V_ee + V_xc')
+        ax2.set_ylabel('Self-consistent Correction Potential (a.u.)', color='gray')
+        ax2.tick_params(axis='y', labelcolor='gray')
+        ax2.set_ylim(0, np.max(v_sc) * 1.05)
+
+        lines_1, labels_1 = ax1.get_legend_handles_labels()
+        lines_2, labels_2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right')
+
+        plt.title('Radial Potentials')
         plt.tight_layout()
 
         if savefig:
-            plt.savefig("potential.png", dpi=300)
+            plt.savefig("data/potential.png", dpi=300)
+            plt.close(fig)
         else:
             plt.show()
 
