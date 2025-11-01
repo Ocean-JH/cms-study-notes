@@ -284,7 +284,6 @@ class RadialDFT:
             "V_ee": [],
             "V_xc": [],
             "E_ks": [],
-            "Norm": [],
             "TotE": [],
             "E_ee": [],
             "E_xc": [],
@@ -358,7 +357,7 @@ class RadialDFT:
         logger.debug(f"Total energies: E_ee={E_ee}, E_xc={E_xc}, E_xc1={E_xc1}")
         return E_ee, E_xc, E_xc1
 
-    def _save_iteration(self, P, V_KS, V_nuc, V_ee, V_xc, E_ks, E_ee, E_xc, E_xc1, E_tot, norm, dE):
+    def _save_iteration(self, P, V_KS, V_nuc, V_ee, V_xc, E_ks, E_ee, E_xc, E_xc1, E_tot, dE):
         """Save current iteration data to history (kept in Python)."""
         self.history["P"].append(P.copy())
         self.history["V_ks"].append(V_KS.copy())
@@ -371,7 +370,6 @@ class RadialDFT:
         self.history["E_xc"].append(E_xc)
         self.history["E_xc1"].append(E_xc1)
         self.history["TotE"].append(E_tot)
-        self.history["Norm"].append(norm)
         self.history["dE"].append(dE)
 
     def scf_loop(self, prec=1e-5, alpha=0.1, Nmax=100, verbose=True):
@@ -391,10 +389,10 @@ class RadialDFT:
         d_eps = None
 
         for it in range(1, Nmax + 1):
-            self.P, norm = self.solve_ks(V_mixed, eps=eps)
-            self._save_iteration(self.P, V_mixed, self.v_nuc, Vee, Vxc, eps, E_ee, E_xc, E_xc1, E_tot, norm, d_eps)
+            self.P, _ = self.solve_ks(V_mixed, eps=eps)
+            self._save_iteration(self.P, V_mixed, self.v_nuc, Vee, Vxc, eps, E_ee, E_xc, E_xc1, E_tot, d_eps)
 
-            logger.info(f"Iter {it}: ε = {eps:.8f}, norm={norm}, Δε = {f'{d_eps:.3e}' if d_eps is not None else 'N/A'}")
+            logger.info(f"Iter {it}: ε = {eps:.8f}, Δε = {f'{d_eps:.3e}' if d_eps is not None else 'N/A'}")
 
             V_new, Vnuc, Vee, Vxc = self.get_v()
             V_mixed = alpha * V_new + (1.0 - alpha) * V_old
@@ -407,9 +405,10 @@ class RadialDFT:
             d_eps = abs(eps_new - eps) if eps is not None else None
 
             if d_eps is not None and d_eps < prec:
-                logger.info(f"Iter {it}: ε = {eps_new:.8f}, norm={norm}, Δε = {d_eps:.3e}")
-                logger.info(f"🎯 SCF converged in {it} iterations on eigenvalue: ε = {eps_new:.8f}")
-                self._save_iteration(self.P, V_mixed, self.v_nuc, Vee, Vxc, eps_new, E_ee, E_xc, E_xc1, E_tot, norm, d_eps)
+                logger.info(f"Iter {it + 1}: ε = {eps_new:.8f}, Δε = {d_eps:.3e}")
+                logger.info(f"🎯 SCF converged in {it + 1} iterations on eigenvalue: ε = {eps_new:.8f}")
+
+                self._save_iteration(self.P, V_mixed, self.v_nuc, Vee, Vxc, eps_new, E_ee, E_xc, E_xc1, E_tot, d_eps)
                 return self.history, self.P_analytical, E_tot
 
             eps = eps_new
