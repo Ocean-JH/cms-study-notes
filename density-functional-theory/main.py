@@ -38,6 +38,18 @@ def plot(dft: RadialDFT, wavefunc=True, potential=True, savefig=True):
         ax1.set_ylim(0.0, np.max(dft.P) * 1.05)
         ax1.grid(True, linestyle='--', alpha=0.5)
 
+        idx_ana_max = np.argmax(dft.P_analytical)
+        r_ana_max, P_ana_max = r[idx_ana_max], dft.P_analytical[idx_ana_max]
+        ax1.vlines(r_ana_max, 0, P_ana_max, color='red', linestyle=':', lw=1.5, alpha=0.8)
+        ax1.text(r_ana_max, -0.03 * np.max(dft.P), f"r = {r_ana_max:.2f}",
+                 color='red', fontsize=9, ha='center', va='top')
+
+        # idx_num_max = np.argmax(dft.P)
+        # r_num_max, P_num_max = r[idx_num_max], dft.P[idx_num_max]
+        # ax1.vlines(r_num_max, 0, P_num_max, color='red', linestyle=':', lw=1.5, alpha=0.8)
+        # ax1.text(r_num_max, -0.03 * np.max(dft.P), f"r = {r_num_max:.2f}",
+        #          color='red', fontsize=9, ha='center', va='top')
+
         diff = dft.P - dft.P_analytical
         ax2 = ax1.twinx()
         ax2.fill_between(r, diff, 0, color='gray', alpha=0.3, label='Difference (Numerical - Analytical)')
