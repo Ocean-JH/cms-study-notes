@@ -37,9 +37,9 @@
 }
 \lstset{style=code}
 
-\title{Radial Kohn-Sham Equation Solver for Hydrogen-like Atoms}
-\author{Wang Jianghai @Nanyang Technological University}
-\date{2025-10-24}
+\title{\Large Radial Kohn--Sham Equation Solver for Hydrogen-like Atoms}
+\author{\normalsize Wang Jianghai @Nanyang Technological University}
+\date{\normalsize 2025-10-24}
 
 \begin{document}
 
@@ -117,7 +117,7 @@ $$V_\text{nuc}(r)=-\frac{Z}{r},$$
 the electron-electron Coulomb repulsion potential
 \[
 V^{ee}(r)
-= 4\pi \int \frac{\rho(r')}{\lvert r - r' \rvert}\, r'^2 \, dr'
+= 4\pi \int \frac{\rho(r')}{\lvert r - r' \rvert}\, r'^2 \, dr',
 \]
 and the exchange-correlation potential $V_{\text{xc}}$.
 
@@ -205,7 +205,12 @@ $$h^2 y_i^{''''} = F_{i+1} - 2F_{i} + F_{i-1} - f_{i+1}y_{i+1} +  2f_{i}y_{i} - 
 
 Combining the two formulas above, we obtain the final Numerov formula:
 
-$$\left( {1 + {{{h^2}} \over {12}}{f_{i + 1}}} \right){y_{i + 1}} - \left( {2 - {{5{h^2}} \over 6}{f_i}} \right){y_i} + \left( {1 + {{{h^2}} \over {12}}{f_{i - 1}}} \right){y_{i - 1}} = {{{h^2}} \over {12}}\left( {{F_{i + 1}} + 10{F_i} + {F_{i - 1}}} \right) + {\cal O}(h^6)$$
+\[
+\left( 1 + \frac{h^2}{12} f_{i+1} \right) y_{i+1}
+- \left( 2 - \frac{5 h^2}{6} f_i \right) y_i
++ \left( 1 + \frac{h^2}{12} f_{i-1} \right) y_{i-1}
+= \frac{h^2}{12} \left( F_{i+1} + 10 F_i + F_{i-1} \right) + \mathcal{O}(h^6)
+\]
 for $i = 2,...,N-1$.
 
 The set of equations for $i = 2,...,N-1$ together with boundary conditions form a tridiagonal system of linear equations, which can be represented in a matrix equation form as:
@@ -246,16 +251,27 @@ The elements of matrix $\bf{Y}$ and vector $\bf{Z}$ are given by
 \]
 Here, the elements of matrix $\bf{A}$ and vector $\bf{Z}$ are defined as follows:
 
-$$A_i = B_i = \left(1 + {h^2\over{12}}f_i\right), C_i = -\left(2-{5h^2\over{6}}f_i\right),$$
+\[
+A_i = B_i = \left( 1 + \frac{h^2}{12} f_i \right), \quad
+C_i = - \left( 2 - \frac{5 h^2}{6} f_i \right),
+\]
 
-$$Z_i = {h^2\over{12}} \left( F_{i+1} + 10F_i + F_{i-1} \right).$$
+
+\[
+Z_i = \frac{h^2}{12} \left( F_{i+1} + 10 F_i + F_{i-1} \right)
+\]
+
 
 For the Kohn-Sham equation, we rewrite it in the form:
 
 $$\frac{\partial^2}{\partial r^2} P(r)+\underbrace{2\left(\varepsilon-V^{KS}(r)\right)}_{f(r)} P(r)=\underbrace{0}_{F(r)}.$$
 Thus, we have $F_i=0$ and $f_i=2\left(\varepsilon-V^{KS}(r_i)\right)$. The Numerov formula becomes:
 
-$$\left( {1 + {{{h^2}} \over {12}}{f_{i + 1}}} \right){P_{i + 1}} - \left( {2 - {{5{h^2}} \over 6}{f_i}} \right){P_i} + \left( {1 + {{{h^2}} \over {12}}{f_{i - 1}}} \right){P_{i - 1}} = 0.$$
+\[
+\left( 1 + \frac{h^2}{12} f_{i+1} \right) P_{i+1}
+- \left( 2 - \frac{5 h^2}{6} f_i \right) P_i
++ \left( 1 + \frac{h^2}{12} f_{i-1} \right) P_{i-1} = 0
+\]
 The boundary conditions in interval $[r_0,r_f]$ are
 
 \[
@@ -299,7 +315,7 @@ This approach is computationally efficient with $\mathcal{O}(N)$ complexity.
 
 Self-consistent field (SCF) method is used to solve KS equation numerically. We can start from some initial approximation to the solution. Let us suppose, that the set of $\psi_i^0$ and $\varepsilon_i^0$ is good initial guess to the solution. Using these values we can calculate KS potential and then solve KS equation with known potential. We will get new solution, $\psi_i^1$ and $\varepsilon_i^1$, from which we can recalculate new KS potential, $V^1$. Since using just new calculated potential $V^1$ can lead to divergence of iterations, we can set some mixing parameter $\alpha$ and calculate the potential for next iteration as following
 $$V^{\text{New}}={\alpha}V^1+\left(1-\alpha\right)V^0,$$
-where $0<\alpha \le 1$. In other words, we add only some part of the new calculated potential and keep part of the previous potential in order not to change the new solution too much.
+where $0 < \alpha < 1$. In other words, we add only some part of the new calculated potential and keep part of the previous potential in order not to change the new solution too much.
 
 \begin{figure}[H]
     \centering
@@ -409,8 +425,8 @@ The code generates several output files:
 \item \texttt{wavefunction.dat}: Contains the radial wavefunction $P(r)$ at each iteration
 \item \texttt{potential.dat}: Contains the different potential components
 \item \texttt{energy.dat}: Contains the energy components at each iteration
-\item \texttt{wavefunction\_comparison.png}: Plot comparing numerical and analytical wavefunctions
-\item \texttt{potential\_comparison.png}: Plot of the different potential components
+\item \texttt{wavefunction.png}: Plot comparing numerical and analytical wavefunctions
+\item \texttt{potential.png}: Plot of the different potential components
 \end{enumerate}
 
 \section{Discussion}
@@ -449,6 +465,29 @@ A systematic scan of $\alpha$ values from 0.02 to 1.0 was performed to identify 
     \caption{Mixing Parameter Optimization}
 \end{figure}
 
+\subsection{Final radial wavefunction and potential}
+
+After optimizing the integration and mixing parameters, the final radial wavefunction and Kohn-Sham potential were computed. The radial wave function and potential were plotted based on the convergence results of the numerical computation, with the radial coordinate restricted to $r \in [0, 2]$.
+
+The numerical $P(r)$ closely matches the analytical solution for a hydrogen-like atom, with a pronounced local maximum at $r = 0.17$. However, pointwise difference between the numerical solution and the analytical hydrogen‑like 1s reference reveals two notable extrema in the error curve: a local minimum at $r = 0.12$ and a local maximum at $r = 0.57$. These stationary points mark regions where the numerical scheme respectively under‑ and overshoots the analytical profile and thus serve as sensitive indicators of discretization and boundary‑condition effects in the near‑origin and intermediate radial ranges.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{data/wavefunction.png}
+    \caption{Radial Wavefunction Comparison}
+\end{figure}
+
+The plotted Kohn--Sham potential explicitly includes the nuclear term $V_{\mathrm{nuc}}$, the Hartree (electron--electron) contribution $V_{ee}$, the exchange--correlation potential $V_{xc}$, and the composite curve $V_{ee} + V_{xc}$. The potential axis was limited to $V \in [-20,\, 10]$ to ensure that both the strong near-nuclear attraction and the finer many-body contributions are visible within a single panel. For the one-electron hydrogenic reference, the exact theory predicts $V_{ee} + V_{xc} \equiv 0$; however, the numerical Kohn--Sham solution exhibits a measurable residual (KS error). This residual attains its largest magnitude at approximately $r \approx 0.09$ and then decays monotonically with increasing $r$ within the plotted interval. The presence of this near-nuclear peak most likely reflects a combination of factors: finite grid resolution near $r \to 0$, incomplete cancellation due to the approximate LDA exchange--correlation functional (including self-interaction remnants), and small inconsistencies introduced by the discrete Poisson/Hartree solver and SCF mixing.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{data/potential.png}
+    \caption{Kohn-Sham Potential Components}
+\end{figure}
+
+From a practical perspective, the identified features provide direct guidance for improvement: increase radial resolution (or adopt a logarithmic mesh) in the near‑origin region, verify the Hartree integration and boundary treatment, and test alternative XC approximations or self‑interaction corrections to reduce the KS residual. The extrema locations in $P(r)$ and the peak in $V_{ee} + V_{xc}$ are therefore useful diagnostic markers for both numerical refinement and functional assessment.
+
+
 \subsection{Known Numerical Issues}
 
 Despite the overall correctness of the implemented algorithm and its agreement with analytical results under moderate grid conditions, numerical instability occurs during the tests at high grid densities.
@@ -472,6 +511,25 @@ This implementation can be extended in several ways:
 \item \textbf{Alternative XC functionals}: Implementing GGA (Generalized Gradient Approximation) or hybrid functionals
 \item \textbf{Non-spherical systems}: Extending beyond radial symmetry
 \end{enumerate}
+
+\section{Conclusion}
+This work presented a pedagogical radial Kohn-Sham solver for hydrogen-like systems. The implementation couples a fixed radial mesh with Numerov propagation and the Thomas tridiagonal solver, uses an LDA exchange-correlation model, and performs SCF iterations with simple potential mixing. Validation against the analytical $1s$ hydrogenic solution was used throughout to verify correctness and to localize numerical discrepancies. Key observations include the radial amplitude $P(r)$ peak at $r \approx 0.17$, error extrema in the numerical--analytical difference at $r \approx 0.12$ (minimum) and $r \approx 0.57$ (maximum), and a measurable Kohn--Sham residual $(V_{ee} + V_{xc})$ peaking near $r \approx 0.09$ and decaying outward.
+
+A notable practical issue encountered is numerical instability in the Python implementation for very dense grids: under extreme discretization the density and potential evaluations can produce overflow/NaN values and abort SCF convergence. This behaviour likely reflects a combination of near-origin resolution limits, discrete Poisson/Hartree integration errors, and residual self-interaction from the approximate XC functional. The problem requires additional study; immediate, practical mitigations to explore include:
+\begin{itemize}
+    \item Increasing near-origin resolution via a logarithmic or nonuniform mesh
+    to resolve $r \rightarrow 0$ without excessive global $N$.
+    \item Testing alternative XC models or self-interaction corrections
+    to reduce unphysical cancellations.
+\end{itemize}
+
+Future work will pursue several directions:
+\begin{itemize}
+    \item Extend the solver to true multi-electron atoms (multiple KS orbitals and occupations);
+    \item Implement gradient-dependent functionals (GGA) and self-interaction corrections;
+    \item Formulate the Kohn--Sham equations in terms of the single-particle Green's function;
+    \item Extend to scalar relativistic case for heavy ions.
+\end{itemize}
 
 \section{References}
 
