@@ -45,6 +45,26 @@ def plot(dft: RadialDFT, wavefunc=True, potential=True, savefig=True):
         ax2.tick_params(axis='y', labelcolor='gray')
         # ax2.set_ylim(-0.0005, np.max(diff) * 1.05)
 
+        idx_max = np.argmax(diff)
+        idx_min = np.argmin(diff)
+        r_max, diff_max = r[idx_max], diff[idx_max]
+        r_min, diff_min = r[idx_min], diff[idx_min]
+
+        ax2.vlines(r_max, 0, diff_max, color='green', linestyle='--', lw=1.0, alpha=0.7)
+        ax2.vlines(r_min, 0, diff_min, color='green', linestyle='--', lw=1.0, alpha=0.7)
+
+        ax2.text(
+            r_max, -0.02 * np.max(np.abs(diff)),
+            f"r = {r_max:.2f}",
+            color='red', fontsize=9, ha='center', va='top'
+        )
+
+        ax2.text(
+            r_min, 0.02 * np.max(np.abs(diff)),
+            f"r = {r_min:.2f}",
+            color='blue', fontsize=9, ha='center', va='bottom'
+        )
+
         lines_1, labels_1 = ax1.get_legend_handles_labels()
         lines_2, labels_2 = ax2.get_legend_handles_labels()
         ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper right')
@@ -77,6 +97,17 @@ def plot(dft: RadialDFT, wavefunc=True, potential=True, savefig=True):
         ax2.set_ylabel('Self-consistent Correction Potential (a.u.)', color='gray')
         ax2.tick_params(axis='y', labelcolor='gray')
         ax2.set_ylim(0, np.max(v_sc) * 1.05)
+
+        idx_max = np.argmax(v_sc)
+        r_max, v_max = r[idx_max], v_sc[idx_max]
+
+        ax2.vlines(r_max, 0, v_max, color='orange', linestyle='--', lw=1.5, alpha=0.7)
+
+        ax2.text(
+            r_max, -0.01 * np.max(np.abs(v_sc)),
+            f"r = {r_max:.2f}",
+            color='orange', fontsize=9, ha='center', va='top'
+        )
 
         lines_1, labels_1 = ax1.get_legend_handles_labels()
         lines_2, labels_2 = ax2.get_legend_handles_labels()
