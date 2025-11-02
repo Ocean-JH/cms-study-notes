@@ -32,13 +32,13 @@
   - [4.1 Optimization of DFT Parameters](#41-optimization-of-dft-parameters)
     - [4.1.1 Optimization of Integration Parameters](#411-optimization-of-integration-parameters)
     - [4.1.2 Mixing Parameter for SCF Convergence](#412-mixing-parameter-for-scf-convergence)
-  - [4.2 Known Numerical Issues](#42-known-numerical-issues)
-  - [4.3 Theoretical Extensions](#43-theoretical-extensions)
-- [5. References](#5-references)
+  - [4.2 Final radial P(r) and potential — observations](#42-final-radial-wavefunction-and-potential)
+  - [4.3 Known Numerical Issues](#43-known-numerical-issues)
+  - [4.4 Theoretical Extensions](#44-theoretical-extensions)
+- [5. Conclusion](#5-conclusion)
+- [6. References](#6-references)
 
 ---
-
-
 
 <div id="abstract" style="border:1px solid #d0d7de; padding:16px; background:#e6ffef; border-radius:6px;">
 <strong style="font-size:1.05em;">Abstract</strong>
@@ -287,7 +287,7 @@ This approach is computationally efficient with ${\cal O}(N)$ complexity.
 
 Self-consistent field (SCF) method is used to solve KS equation numerically. We can start from some initial approximation to the solution. Let us suppose, that the set of $\psi_i^0$ and $\varepsilon_i^0$ is good initial guess to the solution. Using these values we can calculate KS potential and then solve KS equation with known potential. We will get new solution, $\psi_i^1$ and $\varepsilon_i^1$, from which  we can recalculate new KS potential, $V^1$. Since using just new calculated potential $V^1$ can lead to divergence of iterations, we can set some mixing parameter $\alpha$ and calculate the potential for next iteration as following
 $$V^{\text{New}}={\alpha}V^1+\left(1-\alpha\right)V^0$$
-where $0<\alpha \le 1$. In other words, we add only some part of the new calculated potential and keep part of the previous potential in order not to change the new solution too much.
+where $0 < \alpha < 1$. In other words, we add only some part of the new calculated potential and keep part of the previous potential in order not to change the new solution too much.
 
 ![SCF Flowchart](./SCFLoop.jpg)
 
@@ -403,7 +403,16 @@ A systematic scan of $\alpha$ values from 0.02 to 1.0 was performed to identify 
 
 ![Mixing Parameter Optimization](data/alpha_convergence.png)
 
-## 4.2 Known Numerical Issues
+## 4.2 Final radial wavefunction and potential
+The radial wave function and potential were plotted based on the convergence results of the numerical computation, with the radial coordinate restricted to $r \in [0, 2]$.
+
+The computed radial amplitude $P(r)$ displays a pronounced local maximum at $r = 0.17$ within the window. Pointwise difference between the numerical solution and the analytical hydrogen‑like 1s reference reveals two notable extrema in the error curve: a local minimum at $r = 0.12$ and a local maximum at $r = 0.57$. These stationary points mark regions where the numerical scheme respectively under‑ and overshoots the analytical profile and thus serve as sensitive indicators of discretization and boundary‑condition effects in the near‑origin and intermediate radial ranges.
+
+The plotted Kohn–Sham potential explicitly includes the nuclear term $V_{nuc}$, the Hartree (electron–electron) contribution $V_{ee}$, the exchange–correlation potential $V_{xc}$, and the composite curve $V_{ee} + V_{xc}$. The potential axis was limited to $V \in [−20, 10]$ to ensure that both the strong near‑nuclear attraction and the finer many‑body contributions are visible within a single panel. For the one‑electron hydrogenic reference the exact theory predicts $V_{ee} + V_{xc} \equiv 0$; however, the numerical Kohn–Sham solution exhibits a measurable residual (KS error). This residual attains its largest magnitude at approximately $r \approx 0.09$ and then decays monotonically with increasing r within the plotted interval. The presence of this near‑nuclear peak most likely reflects a combination of factors: finite grid resolution near $r \rightarrow 0$, incomplete cancellation due to the approximate LDA exchange‑correlation functional (including self‑interaction remnants), and small inconsistencies introduced by the discrete Poisson/Hartree solver and SCF mixing.
+
+From a practical perspective, the identified features provide direct guidance for improvement: increase radial resolution (or adopt a logarithmic mesh) in the near‑origin region, verify the Hartree integration and boundary treatment, and test alternative XC approximations or self‑interaction corrections to reduce the KS residual. The extrema locations in $P(r)$ and the peak in $V_{ee} + V_{xc}$ are therefore useful diagnostic markers for both numerical refinement and functional assessment.
+
+## 4.3 Known Numerical Issues
 Despite the overall correctness of the implemented algorithm and its agreement with analytical results under moderate grid conditions, numerical instability occurs during the tests at high grid densities.
 
 During the SCF iterations, as $N$ increases, $P(r)$ at the outermost grid points decreases exponentially to zero. Consequently, the density $\rho=P(r)/r$ approaches zero. This extreme results in overflow errors that propagate through the density evaluation, ultimately producing “NaN” values in the potential and eigenvalue. Once NaN values appear, the iterative process fails to proceed, and the calculation terminates prematurely.
@@ -415,7 +424,8 @@ It is noteworthy that the same algorithm implemented in Fortran does not exhibit
 To further investigate, a **Just-In-Time (JIT)** compiled version of the code was tested (using `Numba`). The JIT implementation significantly improved the execution speed but did not eliminate the NaN problem, implying that the instability is intrinsic to the numerical formulation rather than to the interpreter overhead.
 
 In practice, the divergence can be mitigated by reducing the grid density. Another possible solution is to reformulate the density evaluation using **logarithmic grids** or **asymptotic expansions** for large (r), which are known to improve numerical stability in atomic DFT codes.
-## 4.3 Theoretical Extensions
+
+## 4.4 Theoretical Extensions
 
 This implementation can be extended in several ways:
 
@@ -423,7 +433,21 @@ This implementation can be extended in several ways:
 2. **Alternative XC functionals**: Implementing GGA (Generalized Gradient Approximation) or hybrid functionals
 3. **Non-spherical systems**: Extending beyond radial symmetry
 
-# 5. References
+# 5. Conclusion
+
+This work presented a pedagogical radial Kohn–Sham solver for hydrogen‑like systems. The implementation couples a fixed radial mesh with Numerov propagation and the Thomas tridiagonal solver, uses an LDA exchange–correlation model, and performs SCF iterations with simple potential mixing. Validation against the analytical 1s hydrogenic solution was used throughout to verify correctness and to localize numerical discrepancies. Key observations include the radial amplitude P(r) peak at r ≈ 0.17, error extrema in the numerical−analytical difference at r ≈ 0.12 (minimum) and r ≈ 0.57 (maximum), and a measurable Kohn–Sham residual (V_ee + V_xc) peaking near r ≈ 0.09 and decaying outward.
+
+A notable practical issue encountered is numerical instability in the Python implementation for very dense grids: under extreme discretization the density and potential evaluations can produce overflow/NaN values and abort SCF convergence. This behaviour likely reflects a combination of near‑origin resolution limits, discrete Poisson/Hartree integration errors, and residual self‑interaction from the approximate XC functional. The problem requires additional study; immediate, practical mitigations to explore include:
+- Increasing near‑origin resolution via a logarithmic or nonuniform mesh to resolve $r \rightarrow 0$ without excessive global N.
+- Testing alternative XC models or self‑interaction corrections to reduce unphysical cancellations.
+
+Future work will pursue several directions:
+- Extend the solver to true multi‑electron atoms (multiple KS orbitals and occupations);
+- Implement gradient‑dependent functionals (GGA) and self‑interaction corrections;
+- Formulate the Kohn-Sham equations in terms of the single-particle Green's function;
+- Extend to scalar relativistic case for heavy ions.
+
+# 6. References
 1. Pauling, L.; Wilson, E.B. Introduction to Quantum Mechanics, McGraw-Hill, New York, 1935.
 2. Hartree, D.R. The calculation of atomic structures. Chapman & Hall, Ltd., London, 1957.
 3. Parr, R.G.; Yang, W. Density functional theory of atoms and molecules. Oxford University. Press, New York, 1989.
