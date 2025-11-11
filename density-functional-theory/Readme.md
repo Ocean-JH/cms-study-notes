@@ -188,6 +188,18 @@ $$r_i = r_0 + i \cdot h, \quad i = 0, 1, ..., N-1$$
 
 where $r_0$ is the starting point (close to the origin to avoid singularities), $h$ is the step size, and $N$ is the number of grid points.
 
+The selection of the inner and outer radial cutoffs, $r_0$ and $r_f$, is crucial for stable and accurate numerical solutions. The inner cutoff $r_0 > 0$ avoids the Coulomb singularity in terms such as $-\frac Zr$ or $\rho(r) = \frac{P(r)}{r}$ and prevents division by zero that can amplify round-off errors. The outer boundary $r_f$ must be sufficiently large so that the tail of the physical wavefunction is negligible, ensuring that truncation errors remain well below the target tolerance.
+
+For the inner cutoff $r_0$, one should choose the smallest positive value that simultaneously (i) keeps $-\frac Z{r_0}$ within the floating-point range, and (ii) resolves the near-origin analytic behavior $P(r) \propto r^{l+1}$. A practical guideline is $r_0 \lesssim h$, typically in the range $10^{-6}\sim 10^{-4}$ a.u. Choosing $r_0$ too small can lead to catastrophic cancellation in $\frac{P(r)}r$ and significant Hartree/exchange-correlation noise.
+
+The outer boundary $r_f$ should be chosen such that $\frac{|P(r_f)|}{\max_r |P(r)|} \ll 10^{-6}$. For a hydrogenic $1s$ orbital, $P(r) \sim r e^{-Zr}$; requiring $e^{-Z r_f} < 10^{-12}$ gives $r_f > \frac{12 \ln 10}Z \approx \frac{27.6}Z$. In practice, $r_f = 10 \sim 20$ a.u. suffices for $Z=1$, with larger $Z$ values reducing the required radius roughly in proportion to $\frac1Z$.
+
+Once $(r_0, r_f)$ are fixed, the number of grid points $N$ should be selected so that the mesh spacing $h = \frac{r_f - r_0}{N-1}$ adequately resolves (i) the fastest spatial variations near the nucleus, characterized by the length scale $\frac{a_0}Z$, and (ii) regions where diagnostic errors may appear. Typically, $h \lesssim 0.01\sim 0.02$ a.u. ensures smooth convergence for a single-orbital case.
+
+Advanced improvements include using logarithmic or mixed (piecewise) grids to concentrate points near $r=0$ without excessively increasing $N$, asymptotic matching to replace the outer tail, or mapped coordinates (e.g., $r = f(x)$ with $x \in [0,1]$) to equalize numerical error distribution.
+
+In this project, the choices $r_0 = 10^{-5}$ a.u., $r_f = 20$ a.u., and $N = 10001$ yield $h \approx 0.002$ a.u. with negligible tail contribution.
+
 ## 2.2 Analytical Solution
 
 The implementation is based on the hydrogen-like atom model, which has an exact analytical solution for the 1s orbital. This allows us to validate the numerical results against known solutions.
