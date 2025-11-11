@@ -275,11 +275,17 @@ $$\eqalign{   & \alpha_2 = 0  \cr    & \beta_2 =   P_{10}^0\left( r_0 \right)\cr
 Then the Thomas algorithm consists of two main phases:
 
 1. **Forward elimination** phase creates an upper bidiagonal system
-   $$\alpha_{i+1} = -\frac{B_i}{A_i\alpha_i + C_i}$$
-   $$\beta_{i+1} = \frac{Z_i - A_i\beta_i}{A_i\alpha_i + C_i}$$
+   $$
+   \begin{align*}
+   \alpha_{i+1} &= -\frac{B_i}{A_i\alpha_i + C_i} \\
+   \beta_{i+1} &= \frac{Z_i - A_i\beta_i}{A_i\alpha_i + C_i}
+   \end{align*},
+   $$
+   for $i = 2,...,N-1$.
 
 2. **Backward substitution** phase solves for the unknowns
-   $${P_i} = {\alpha _{i + 1}}{P_{i + 1}} + {\beta _{i + 1}}$$
+   $${P_i} = {\alpha _{i + 1}}{P_{i + 1}} + {\beta _{i + 1}},$$
+   for $i = N-1,...,2$, whereas $P_1$ and $P_N$ are given by the boundary conditions.
 
 This approach is computationally efficient with ${\cal O}(N)$ complexity.
 

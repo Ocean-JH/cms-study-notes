@@ -301,12 +301,18 @@ At first, we can calculate $\alpha_2$ and $\beta_2$ from the boundary condition 
 Then the Thomas algorithm consists of two main phases:
 
 \begin{enumerate}
-\item \textbf{Forward elimination} phase creates an upper bidiagonal system
-   $$\alpha_{i+1} = -\frac{B_i}{A_i\alpha_i + C_i},$$
-   $$\beta_{i+1} = \frac{Z_i - A_i\beta_i}{A_i\alpha_i + C_i}.$$
+    \item \textbf{Forward elimination} phase creates an upper bidiagonal system
+    \begin{align*}
+        \alpha_{i+1} &= -\frac{B_i}{A_i\alpha_i + C_i}, \\
+        \beta_{i+1} &= \frac{Z_i - A_i\beta_i}{A_i\alpha_i + C_i},
+    \end{align*}
+    for $i = 2,\dots,N-1$.
 
-\item \textbf{Backward substitution} phase solves for the unknowns
-   $${P_i} = {\alpha _{i + 1}}{P_{i + 1}} + {\beta _{i + 1}}.$$
+    \item \textbf{Backward substitution} phase solves for the unknowns
+    \begin{equation*}
+        P_i = \alpha_{i+1} P_{i+1} + \beta_{i+1},
+    \end{equation*}
+    for $i = N-1,\dots,2$, whereas $P_1$ and $P_N$ are given by the boundary conditions.
 \end{enumerate}
 
 This approach is computationally efficient with $\mathcal{O}(N)$ complexity.
