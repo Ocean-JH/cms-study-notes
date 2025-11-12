@@ -34,7 +34,7 @@
     - [4.1.2 Mixing Parameter for SCF Convergence](#412-mixing-parameter-for-scf-convergence)
   - [4.2 Final radial P(r) and potential — observations](#42-final-radial-wavefunction-and-potential)
   - [4.3 Known Numerical Issues](#43-known-numerical-issues)
-  - [4.4 Theoretical Extensions](#44-theoretical-extensions)
+  - [4.4 Towards a Production-Grade DFT Code](#44-towards-a-production-grade-dft-code)
 - [5. Conclusion](#5-conclusion)
 - [6. References](#6-references)
 
