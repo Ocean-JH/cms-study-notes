@@ -374,7 +374,7 @@ The parameters for the calculation can be set in `main.py`:
 Z = 6             # Nuclear charge for hydrogen-like atom
 r0 = 1e-5         # Minimum radius (a.u.)
 rf = 20.0         # Maximum radius (a.u.)
-N = 10001         # Number of grid points
+N = 8001         # Number of grid points
 
 alpha = 0.1       # Mixing parameter for SCF
 prec = 1e-5       # Convergence tolerance
@@ -447,13 +447,35 @@ To further investigate, a **Just-In-Time (JIT)** compiled version of the code wa
 
 In practice, the divergence can be mitigated by reducing the grid density. Another possible solution is to reformulate the density evaluation using **logarithmic grids** or **asymptotic expansions** for large (r), which are known to improve numerical stability in atomic DFT codes.
 
-## 4.4 Theoretical Extensions
+## 4.4 Towards a Production-Grade DFT Code
 
-This implementation can be extended in several ways:
+The pedagogical solver presented here encapsulates the core numerical components of a Kohn–Sham SCF cycle. Transitioning from a didactic demonstration to a production-quality density functional theory (DFT) package primarily requires the integration of robust, well-engineered technical features on top of this foundational framework. The following concise roadmap outlines practical extensions and design considerations:
 
-1. **Multi-electron systems**: Implementing multiple Kohn-Sham orbitals and handling orbital occupations
-2. **Alternative XC functionals**: Implementing GGA (Generalized Gradient Approximation) or hybrid functionals
-3. **Non-spherical systems**: Extending beyond radial symmetry
+- Angular quantum number and full orbital manifold  
+  Extend the radial equation to include the centrifugal term for arbitrary $l$ and solve for multiple $(n,l)$ eigenpairs. Manage orbital occupations and degeneracies to construct the total density from a set of occupied $P_{nl}(r)$.
+
+- Full spatial reconstruction with spherical harmonics  
+  Multiply radial solutions by spherical harmonics $Y_{lm}(\theta,\phi)$ to assemble three‑dimensional orbitals and observables. This step is necessary for non‑spherically averaged quantities (e.g., angularly resolved densities, multipole moments).
+
+- SCF robustness and advanced mixing schemes  
+  Replace simple linear mixing with proven techniques (Pulay/DIIS, Broyden, Kerker preconditioning) and implement adaptive convergence criteria, robust line searches, and occupancy smearing. These improvements are critical when starting from poor initial guesses or for multi‑electron systems.
+
+- Exchange–correlation library integration  
+  Implement an interface to [LibXC](https://libxc.gitlab.io) to access a broad range of well-tested exchange–correlation and kinetic energy functionals, including LDA, GGA, meta‑GGA, and hybrid forms. This integration enables the use of advanced functionals and facilitates testing of self-interaction correction (SIC) schemes within the existing solver framework.
+
+- External numerical libraries and eigenproblem solvers  
+  Offload linear algebra and eigenvalue problems to optimized libraries (e.g. [LAPACK](https://www.netlib.org/lapack/), [ARPACK](https://www.arpack.org) and [SLEPc](https://slepc.upv.es/release/). Use specialized Poisson/Hartree solvers for spherical and multicenter geometries to improve accuracy and performance.
+
+- Basis‑set  
+  Standard DFT codes typically construct the initial density from an chosen atomic or minimal basis set rather than an analytical solution, since the analytical solution is generally unknown for most systems. Implement basis‑based initialization (Gaussian, Slater, or numeric atomic orbitals) and provide routines to orthonormalize and project between basis and real‑space representations.
+
+- Multi‑center (multiple nuclei) and many‑electron support  
+  Generalize the code to handle multiple nuclei and electrons: assemble total electron density as the sum over all occupied orbitals, include nuclear–nuclear repulsion terms, and support charge and spin states. Implement electrostatic partitioning or multicenter Poisson solvers as needed.
+
+- Spin polarization and relativistic effects  
+  Add separate spin‑up/spin‑down channels for collinear spin DFT and, if required, noncollinear spin formulations. For heavy elements, include scalar relativistic corrections or the Dirac/Kohn–Sham relativistic formalism.
+
+Collectively, these enhancements preserve the conceptual core of the pedagogical solver while transforming it into a robust and extensible toolchain suitable for production-level scientific research.
 
 # 5. Conclusion
 
