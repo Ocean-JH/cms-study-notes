@@ -106,23 +106,27 @@ class RadialDFT:
         A, B, C, D = 0.0311, -0.0480, 0.0020, -0.0116
         b1, b2, g = 1.0529, 0.3334, -0.1423
 
-        # rho = (self.P / self.r)**2
-        for i in range(self.N):
-            rho = (self.P[i] / self.r[i])**2                         # charge density
-            rs = (3.0 / (4.0 * np.pi * rho))**(1.0/3.0)
-            Vx = -(3.0 * rho / np.pi)**(1.0/3.0)                     # exchange potential
+        rho = (self.P / self.r) ** 2                                # charge density
+        rs = (3.0 / (4.0 * np.pi * rho)) ** (1.0 / 3.0)             # Wigner-Seitz radius
+        Vx = - (3.0 * rho / np.pi) ** (1.0 / 3.0)                   # exchange potential
 
-            # correlation potential
-            if rs < 1.0:
-                Vc = (A * np.log(rs)
-                      + (B - (1.0/3.0)*A)
-                      + (2.0/3.0)*C*rs*np.log(rs)
-                      + (1.0/3.0)*(2.0*D - C)*rs)
-            else:
-                Vc = (g * (1.0 + (7.0/6.0)*b1*np.sqrt(rs) + (4.0/3.0)*b2*rs) /
-                      (1.0 + b1*np.sqrt(rs) + b2*rs)**2)
+        # correlation potential
+        mask = rs < 1.0
+        Vc = np.zeros_like(rs)
 
-            self.v_xc[i] = Vx + Vc
+        Vc[mask] = (
+                A * np.log(rs[mask])
+                + (B - (1.0 / 3.0) * A)
+                + (2.0 / 3.0) * C * rs[mask] * np.log(rs[mask])
+                + (1.0 / 3.0) * (2.0 * D - C) * rs[mask]
+        )
+
+        Vc[~mask] = (
+                g * (1.0 + (7.0 / 6.0) * b1 * np.sqrt(rs[~mask]) + (4.0 / 3.0) * b2 * rs[~mask])
+                / (1.0 + b1 * np.sqrt(rs[~mask]) + b2 * rs[~mask]) ** 2
+        )
+
+        self.v_xc = Vx + Vc
 
         return self.v_xc
 
@@ -148,7 +152,7 @@ class RadialDFT:
         alpha[1] = 0.0
         beta[1] = self.P[0]
 
-        # ---- forward sweep ----
+        # Forward sweep: Index i from 2 to N-1
         for i in range(1, self.N-1):
             fi   = 2.0 * (-V[i]   + eps)
             fi1  = 2.0 * (-V[i+1] + eps)
@@ -164,10 +168,11 @@ class RadialDFT:
             alpha[i+1] = - Bi / AC
             beta[i+1] = - Ai * beta[i] / AC
 
-        # ---- backward sweep ----
+        # Boundary conditions
         Y[0] = self.P[0]                                    # the boundary condition P(r_0), see formula (2) in https://www.dsedu.org/courses/dft/ks_eigenvector
         Y[-1] = self.P[-1]                                  # the boundary condition P(r_f), see formula (2) in https://www.dsedu.org/courses/dft/ks_eigenvector
 
+        # Backward sweep: Index i from N-1 down to 2
         for i in range(self.N-2, 0, -1):
             Y[i] = alpha[i+1] * Y[i+1] + beta[i+1]          # see Eq. (3) from Thomas method https://www.dsedu.org/courses/dft/thomas
 
@@ -198,18 +203,18 @@ class RadialDFT:
         A, B, C, D = 0.0311, -0.0480, 0.0020, -0.0116
         b1, b2, g = 1.0529, 0.3334, -0.1423
 
-        E_xc = np.zeros_like(self.r, dtype=float)
+        rho = (self.P / self.r) ** 2
+        rs = (3.0 / (4.0 * np.pi * rho)) ** (1.0 / 3.0)
+        Ex = -0.75 * (3.0 * rho / np.pi) ** (1.0 / 3.0)
 
-        for i, pi in enumerate(self.P):
-            rho = (pi / self.r[i])**2
-            rs = (3.0 / (4.0 * np.pi * rho))**(1.0/3.0)
-            Ex = -0.75 * (3.0 * rho / np.pi)**(1.0/3.0)
-            if rs < 1.0:
-                Ec = A * np.log(rs) + B + C * rs * np.log(rs) + D * rs
-            else:
-                Ec = g / (1.0 + b1 * np.sqrt(rs) + b2 * rs)
+        mask = rs < 1.0
+        Ec = np.zeros_like(rs)
 
-            E_xc[i] = Ex + Ec
+        Ec[mask] = A * np.log(rs[mask]) + B + C * rs[mask] * np.log(rs[mask]) + D * rs[mask]
+
+        Ec[~mask] = g / (1.0 + b1 * np.sqrt(rs[~mask]) + b2 * rs[~mask])
+
+        E_xc = Ex + Ec
 
         return E_xc
 

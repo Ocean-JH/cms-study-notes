@@ -115,28 +115,28 @@ def get_v_xc_num(P, r):
     A, B, C, D = 0.0311, -0.0480, 0.0020, -0.0116
     b1, b2, g = 1.0529, 0.3334, -0.1423
 
-    for i in range(N):
-        rho = (P[i] / r[i])**2
-        # guard against extremely small rho (avoid division by zero)
-        if rho <= 0.0:
-            # choose large rs -> use large-rs branch safely
-            # but we set vxc to zero as fallback
-            vxc[i] = 0.0
-            continue
+    rho = (P / r) ** 2
+    rs = (3.0 / (4.0 * np.pi * rho)) ** (1.0 / 3.0)
+    Vx = - (3.0 * rho / np.pi) ** (1.0 / 3.0)
 
-        rs = (3.0 / (4.0 * np.pi * rho))**(1.0 / 3.0)
-        Vx = - (3.0 * rho / np.pi) ** (1.0/3.0)
+    # correlation potential
+    mask = rs < 1.0
+    Vc = np.zeros_like(rs)
 
-        if rs < 1.0:
-            Vc = (A * np.log(rs)
-                  + (B - (1.0/3.0) * A)
-                  + (2.0/3.0) * C * rs * np.log(rs)
-                  + (1.0/3.0) * (2.0 * D - C) * rs)
-        else:
-            denom = (1.0 + b1 * np.sqrt(rs) + b2 * rs)
-            Vc = g * (1.0 + (7.0 / 6.0) * b1 * np.sqrt(rs) + (4.0 / 3.0) * b2 * rs) / (denom * denom)
+    Vc[mask] = (
+            A * np.log(rs[mask])
+            + (B - (1.0 / 3.0) * A)
+            + (2.0 / 3.0) * C * rs[mask] * np.log(rs[mask])
+            + (1.0 / 3.0) * (2.0 * D - C) * rs[mask]
+    )
 
-        vxc[i] = Vx + Vc
+    Vc[~mask] = (
+            g * (1.0 + (7.0 / 6.0) * b1 * np.sqrt(rs[~mask]) + (4.0 / 3.0) * b2 * rs[~mask])
+            / (1.0 + b1 * np.sqrt(rs[~mask]) + b2 * rs[~mask]) ** 2
+    )
+
+    vxc = Vx + Vc
+
     return vxc
 
 @njit
@@ -219,19 +219,19 @@ def e_xc_num(P, r):
     A, B, C, D = 0.0311, -0.0480, 0.0020, -0.0116
     b1, b2, g = 1.0529, 0.3334, -0.1423
 
-    for i in range(N):
-        pi = P[i]
-        rho = (pi / r[i])**2
-        if rho <= 0.0:
-            E_xc[i] = 0.0
-            continue
-        rs = (3.0 / (4.0 * np.pi * rho))**(1.0 / 3.0)
-        Ex = -0.75 * (3.0 * rho / np.pi)**(1.0 / 3.0)
-        if rs < 1.0:
-            Ec = A * np.log(rs) + B + C * rs * np.log(rs) + D * rs
-        else:
-            Ec = g / (1.0 + b1 * np.sqrt(rs) + b2 * rs)
-        E_xc[i] = Ex + Ec
+    rho = (P / r) ** 2
+    rs = (3.0 / (4.0 * np.pi * rho)) ** (1.0 / 3.0)
+    Ex = -0.75 * (3.0 * rho / np.pi) ** (1.0 / 3.0)
+
+    mask = rs < 1.0
+    Ec = np.zeros_like(rs)
+
+    Ec[mask] = A * np.log(rs[mask]) + B + C * rs[mask] * np.log(rs[mask]) + D * rs[mask]
+
+    Ec[~mask] = g / (1.0 + b1 * np.sqrt(rs[~mask]) + b2 * rs[~mask])
+
+    E_xc = Ex + Ec
+
     return E_xc
 
 @njit
